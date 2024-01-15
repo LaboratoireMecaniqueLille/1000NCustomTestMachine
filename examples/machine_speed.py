@@ -32,8 +32,7 @@ if __name__ == '__main__':
       # acquired in a file .npy in the folder given.
       }])
 
-  # This Generator generates the command for driving the Machine Block.
-  # The different paths drive the Machine to the desired force.
+  # This Generator generates the speed command for driving the Machine Block.
   gen = crappy.blocks.Generator([{'type': 'Constant',
                                   'value': speed,
                                   'condition': 'delay=10'},
