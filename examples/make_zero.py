@@ -34,7 +34,7 @@ if __name__ == '__main__':
   # This Machine Block drives a Phidget4AStepper in speed.
   mot = crappy.blocks.Machine(
     [{'type': 'Phidget4AStepper',  # The name of the Actuator to drive.
-      'mode': 'speed',  # Driving in speed mode, not is position mode.
+      'mode': 'speed',  # Driving in speed mode, not in position mode.
       'speed_label': 'speed',  # The label carrying the speed readout.
       'position_label': 'pos',  # The label carrying the position readout.
       'steps_per_mm': 2500,  # Number of steps necessary to move by 1 mm.
