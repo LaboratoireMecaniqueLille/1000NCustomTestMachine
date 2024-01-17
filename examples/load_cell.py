@@ -22,11 +22,11 @@ if __name__ == '__main__':
   load_cell = crappy.blocks.IOBlock(
     'PhidgetWheatstoneBridge',  # The name of the InOut object to drive.
     labels=['t(s)', 'F(N)'],  # The names of the labels to output.
+    make_zero_delay=1,  # To offset the values acquired during the delay to the
+    # rest of
     remote=True,  # True if connected to wi-fi to the machine, False if wired.
     channel=1,  # Channel of the Wheatstone Bridge.
     gain=gain,  # Gain of the load cell.
-    auto_offset=True  # True to offset the first value acquired to the rest of
-    # the values acquired.
   )
 
   # This Machine Block drives a Phidget4AStepper in speed.

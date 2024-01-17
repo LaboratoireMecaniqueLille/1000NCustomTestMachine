@@ -27,8 +27,6 @@ if __name__ == '__main__':
     remote=True,  # True if connected to wi-fi to the machine, False if wired.
     channel=1,  # Channel of the Wheatstone Bridge.
     gain=gain,  # Gain of the load cell.
-    auto_offset=False  # True to offset the first value acquired to the rest of
-    # the values acquired.
   )
 
   # This Machine Block drives a Phidget4AStepper in speed.
