@@ -32,12 +32,15 @@ if __name__ == '__main__':
       # reach in mm/s².
       'remote': True,  # True if connected to wi-fi to the machine,
       # False if wired.
-      'absolute_mode': (True, 20),  # If True, get the position in reference of
+      'absolute_mode': True,  # If True, get the position in reference of
       # the value given.
+      'reference_pos': 10,
       'switch_ports': (5, 6),  # Port numbers of the VINT Hub where the
       # switches are connected.
-      'save_last': (True, save_folder)  # If True, save the last position
-      # acquired in a file .npy in the folder given.
+      'save_last_pos': True,  # If True, save the last position acquired in a
+      # .npy file.
+      'save_pos_folder': save_folder,  # Path to the folder where to save the
+      # last position
       }])
 
   # This Generator generates the position command for driving the Machine

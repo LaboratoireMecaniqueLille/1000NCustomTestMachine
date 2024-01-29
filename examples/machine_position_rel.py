@@ -10,8 +10,6 @@ import crappy
 
 if __name__ == '__main__':
 
-  save_folder = '/home/essais/Desktop/margotin/'
-
   # This Machine Block drives a Phidget4AStepper in relative position.
   mot = crappy.blocks.Machine(
     [{'type': 'Phidget4AStepper',  # The name of the Actuator to drive.
@@ -28,12 +26,8 @@ if __name__ == '__main__':
       # reach in mm/s².
       'remote': True,  # True if connected to wi-fi to the machine,
       # False if wired.
-      'absolute_mode': (False, 0),  # If True, get the position in reference of
-      # the value given.
       'switch_ports': (5, 6),  # Port numbers of the VINT Hub where the
       # switches are connected.
-      'save_last': (False, save_folder)  # If True, save the last position
-      # acquired in a file .npy in the folder given.
       }])
 
   # This Generator generates the position command for driving the Machine
