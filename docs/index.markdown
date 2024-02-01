@@ -12,7 +12,8 @@ The 1000N Custom Test Machine has been developed at the
 [LaMcube](https://lamcube.univ-lille.fr/) to perform 
 easily different mechanic tests. This machine is based on 
 [Phidgets](https://www.phidgets.com/) hardware and
-on the python module [Crappy](https://crappy.readthedocs.io/en/stable/index.html).
+on the python module 
+[Crappy](https://crappy.readthedocs.io/en/stable/index.html).
 
 On this documentation website, you can find information about the :
 
