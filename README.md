@@ -5,9 +5,9 @@ at the LaMcube laboratory.
 Presentation 
 ------------
 
-This machine is based on [Phidgets](https://www.phidgets.com/) hardware and the
-python module [Crappy](https://crappy.readthedocs.io/en/stable/index.html) to 
-perform different tests as tensile test, flexion test, compression test and 
+This machine is based on [Phidgets](https://www.phidgets.com/) hardware and on 
+the python module [Crappy](https://crappy.readthedocs.io/en/stable/index.html)
+to perform different tests as tensile test, flexion test, compression test and 
 compact tension test on different materials.
 
 Phidgets
