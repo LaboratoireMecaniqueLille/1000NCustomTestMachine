@@ -1,7 +1,9 @@
 """
 This example demonstrates the use of the Machine Block in relative position
 mode. It means that if the target position is 10 mm, the motor will move from
-10 mm from his actual position.
+10 mm from his actual position. Along with the position, a speed setpoint is
+also generated and sent to the Machine Block. This speed value indicates the
+maximum speed at which the Actuator can move for reaching the desired position.
 
 You can hit CTRL+C to stop it, but it is not a clean way to stop Crappy.
 """
