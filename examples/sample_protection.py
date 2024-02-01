@@ -3,7 +3,12 @@ This example can be used to protect your sample during the tightening of the
 sample to the machine.
 
 In this example, the motor is driven in function of the level of stress in the
-sample. This Machine Block drives the motor in speed here.
+sample. If the force measured by the load cell is greater (resp. lesser) than a
+threshold value (10 N), the motor will move at speed = 0.5 mm/s in the
+appropriate direction so that the force stays lesser (resp. greater) than the
+threshold value.
+
+This Machine Block drives the motor in speed here.
 The InOut Block measured the force applied, and also outputs it to a Grapher
 Block and to a Recorder Block.
 
@@ -16,7 +21,8 @@ if __name__ == '__main__':
 
   gain = 3.26496001e+05
   save_folder = '/home/essais/Desktop/margotin/'
-  speed = 1
+  speed = 0.5  # Speed in mm/s
+  thresh = 10  # Threshold force in N
 
   # This IOBlock gets the current force measured by a 1000N load cell with a
   # Phidget Wheatstone Bridge, and sends it to downstream Blocks.
@@ -51,11 +57,11 @@ if __name__ == '__main__':
   # The path drive the Machine in function of the force measured by the load
   # cell.
   gen = crappy.blocks.Generator([{'type': 'Conditional',
-                                  'condition1': 'F(N)>10',
-                                  'condition2': 'F(N)<-10',
+                                  'condition1': f'F(N)>{thresh}',
+                                  'condition2': f'F(N)<-{thresh}',
                                   'value0': 0,
-                                  'value1': -0.5,
-                                  'value2': 0.5}])
+                                  'value1': -speed,
+                                  'value2': speed}])
 
   # This Grapher displays the force as measured by the LoadCell Block.
   graph_force = crappy.blocks.Grapher(('t(s)', 'F(N)'))
