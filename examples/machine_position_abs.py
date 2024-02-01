@@ -34,7 +34,7 @@ if __name__ == '__main__':
       # False if wired.
       'absolute_mode': True,  # If True, get the position in reference of
       # the value given.
-      'reference_pos': 10,
+      'reference_pos': 20,  # Reference position example.
       'switch_ports': (5, 6),  # Port numbers of the VINT Hub where the
       # switches are connected.
       'save_last_pos': True,  # If True, save the last position acquired in a
