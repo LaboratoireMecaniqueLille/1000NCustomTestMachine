@@ -20,6 +20,8 @@ Machine.
 <img src="./images/traction2.png" height="100" width="350" align="center" title="Traction setup">
 </p>
 
+<br>
+
 ## Flexion setup
 
 <p align="center">
@@ -32,6 +34,8 @@ Machine.
 <img src="./images/flexion2.png" height="100" width="350" align="center" title="Flexion setup">
 </p>
 
+<br>
+
 ## Compact tension setup
 
 <p align="center">
@@ -43,6 +47,8 @@ Machine.
 <p align="center">
 <img src="./images/ct2.png" height="100" width="350" align="center" title="Compact tension setup">
 </p>
+
+<br>
 
 ## Traction on elastomer setup
 
