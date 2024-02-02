@@ -8,7 +8,8 @@ title: Hardware description
 
 [Home page](index.markdown)
 
-The 1000N Custom Test Machine is based on the Phidgets technology.
+The 1000N Custom Test Machine is based on the Phidgets technology. This page 
+describes the different Phidgets components of this machine.
 
 
 ## Phidgets
