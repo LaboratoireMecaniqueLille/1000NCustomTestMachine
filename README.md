@@ -42,4 +42,5 @@ The latest version of the documentation can be accessed on the [project's
 website](https://laboratoiremecaniquelille.github.io/1000NCustomTestMachine/). 
 It contains information about the installation of the different python module,
 a more detailed description of the hardware, descriptions of the setups to 
-perform the different test and indications how to use crappy-based algorithms.
+perform the different test, the usage of the machine and indications how to use
+crappy-based algorithms.
