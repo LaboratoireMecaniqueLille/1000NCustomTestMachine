@@ -36,8 +36,8 @@ if __name__ == '__main__':
       # to the motor, in A.
       'max_acceleration': 20,  # Maximum acceleration the motor is allowed to
       # reach in mm/s².
-      'remote': True,  # True if connected to wi-fi to the machine,
-      # False if wired.
+      'remote': True,  # True if connected to a wireless VINT Hub, False if
+      # connected to a USB VINT Hub
       'absolute_mode': True,  # If True, get the position in reference of
       # the value given.
       'reference_pos': 20,  # Reference position example.

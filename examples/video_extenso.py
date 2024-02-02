@@ -33,7 +33,8 @@ if __name__ == '__main__':
     labels=['t(s)', 'F(N)'],  # The names of the labels to output.
     make_zero_delay=1,  # To offset the values acquired during the delay to the
     # rest of.
-    remote=True,  # True if connected to wi-fi to the machine, False if wired.
+    remote=True,  # True if connected to a wireless VINT Hub, False if
+    # connected to a USB VINT Hub
     channel=1,  # Channel of the Wheatstone Bridge.
     gain=gain,  # Gain of the load cell.
   )
@@ -49,8 +50,8 @@ if __name__ == '__main__':
       # to the motor, in A.
       'max_acceleration': 20,  # Maximum acceleration the motor is allowed to
       # reach in mm/s².
-      'remote': True,  # True if connected to wi-fi to the machine,
-      # False if wired.
+      'remote': True,  # True if connected to a wireless VINT Hub, False if
+      # connected to a USB VINT Hub
       'switch_ports': (5, 6),  # Port numbers of the VINT Hub where the
       # switches are connected.
       }])
@@ -73,10 +74,6 @@ if __name__ == '__main__':
 
   # This VideoExtenso Block calculates the strain of the image by tracking the
   # displacement of spots on the acquired images.
-  # This Block is actually also the one that generates the fake strain on the
-  # image, but that wouldn't be the case in real life.
-  # It takes the target strain as an input, and outputs both the computed
-  # strain and the positions of the tracked spots.
   ve = crappy.blocks.VideoExtenso(
       'CameraGstreamer',  # The name of Camera to open.
       device='/dev/video2',  # The camera port.
