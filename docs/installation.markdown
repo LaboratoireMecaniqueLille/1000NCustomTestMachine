@@ -5,6 +5,9 @@ title: Installation
 
 [Home page](index.markdown)
 
+This page explains how to install the different python modules required to use 
+the 1000N Custom Test Machine.
+
 ## Install Crappy
 
 To install Crappy, please follow crappy documentation available 
@@ -25,7 +28,7 @@ Install additional packages
 user@machine:~$ sudo apt install -y libphidget22-dev libphidget22extra phidget22networkserver libphidget22java phidget22admin phidget22wwwjs
 ```
 
-Install Phidget22 package
+Install Phidget22 python library
 
 ```console
 user@machine:~$ python3 -m pip install Phidget22
