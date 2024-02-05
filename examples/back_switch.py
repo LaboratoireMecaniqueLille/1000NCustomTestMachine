@@ -54,7 +54,7 @@ if __name__ == '__main__':
   root.title("Motor speed")
 
   # Create the slider associate to the switch hit
-  if open_switch == 5:
+  if open_switch == 1:
     # Create the slider
     slider = tk.Scale(root,
                       from_=0,
@@ -63,7 +63,7 @@ if __name__ == '__main__':
                       length=200,
                       resolution=0.1,
                       command=gen_speed)
-  elif open_switch == 6:
+  elif open_switch == 2:
     slider = tk.Scale(root,
                       from_=-2,
                       to=0,
