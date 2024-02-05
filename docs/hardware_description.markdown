@@ -39,7 +39,7 @@ and sensors.
 <img src="./images/VINT_Phidgets.png" height="150" width="150" align="center" title="Phidgets Wireless VINT HUB">
 </p>
 
-More documentation can be found <a href="https://www.phidgets.com/?prodid=1143">here</a>. 
+More documentation about the Wireless VINT Hub can be found <a href="https://www.phidgets.com/?prodid=1143">here</a>. 
 
 ### 4A Stepper Phidget
 
@@ -56,7 +56,7 @@ Phidget stops the motor.
 In the python module Crappy the 4A Stepper driver corresponds to a Machine 
 Block for the Actuator: <B>Phidget4AStepper</B>.
 
-More documentation can be found <a href="https://www.phidgets.com/?prodid=1278">here</a>.
+More documentation about this driver can be found <a href="https://www.phidgets.com/?prodid=1278">here</a>.
 
 ### Wheatstone Bridge Phidget
 
@@ -84,8 +84,9 @@ the cell's electrical output and the variation in the applied force has been
 calculated:
 gain = 3.265e+05 N/V.
 
+More documentation about the load cell can be found <a href="https://www.phidgets.com/?prodid=229">here</a>.
+
 In the python module Crappy the Wheatstone bridge corresponds to an IOBlock for
 the InOut: <B>PhidgetWheatstoneBridge</B>.
 
-
-More documentation can be found <a href="https://www.phidgets.com/?prodid=957">here</a>. 
+More documentation about the sensor can be found <a href="https://www.phidgets.com/?prodid=957">here</a>. 
