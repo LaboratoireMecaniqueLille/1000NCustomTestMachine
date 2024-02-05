@@ -23,7 +23,7 @@ if __name__ == '__main__':
       'max_acceleration': 20,  # Maximum acceleration the motor is allowed to
       # reach in mm/s².
       'remote': True,  # True if connected to a wireless VINT Hub, False if
-      # connected to a USB VINT Hub
+      # connected to a USB VINT Hub.
       'switch_ports': (5, 6),  # Port numbers of the VINT Hub where the
       # switches are connected.
       }])
