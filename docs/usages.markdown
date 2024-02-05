@@ -171,3 +171,4 @@ For example:
 user@machine:~$ python3 sample_protection.py
 user@machine:~$ python3 load_cell.py
 ```
+[Home page](index.markdown)
