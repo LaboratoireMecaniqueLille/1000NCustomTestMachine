@@ -53,6 +53,9 @@ Phidget stops the motor.
 <img src="./images/S4A_Phidgets.png" height="150" width="150" align="center" title="4A Stepper Phidget">
 </p>
 
+In the python module Crappy the 4A Stepper driver corresponds to a Machine 
+Block for the Actuator: <B>Phidget4AStepper</B>.
+
 More documentation can be found <a href="https://www.phidgets.com/?prodid=1278">here</a>.
 
 ### Wheatstone Bridge Phidget
@@ -65,5 +68,24 @@ load cell output into precise force measurements.
 <p align="center">
 <img src="./images/WB_Phidgets.png" height="150" width="150" align="center" title="Wheatstone Bridge Phidget">
 </p>
+
+The load cell used for the 1000N Custom Test Machine an S-type load cell. It 
+can measure with accuracy loads up to 100 kg which is about 1000 N. 
+
+A load cell utilizes the principle of strain gauges, which are thin conductive 
+wires attached to its surface. When a force is applied, the material undergoes
+strain, causing a change in the electrical resistance of these strain gauges. 
+This change in resistance is then precisely measured and converted into an 
+electrical signal with here Wheatstone bridge, providing an accurate 
+representation of the applied force.
+
+Through calibration of the load cell, the relationship between the variation in
+the cell's electrical output and the variation in the applied force has been 
+calculated:
+gain = 3.265e+05 N/V.
+
+In the python module Crappy the Wheatstone bridge corresponds to an IOBlock for
+the InOut: <B>PhidgetWheatstoneBridge</B>.
+
 
 More documentation can be found <a href="https://www.phidgets.com/?prodid=957">here</a>. 
