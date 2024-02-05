@@ -20,7 +20,7 @@ On this documentation website, you can find information about the :
 - [Python modules installation](installation.markdown)
 - [Hardware description](hardware_description.markdown)
 - [Setups](setups.markdown)
-- [Usages](usages.markdown)
+- [Usage](usages.markdown)
 - [Code examples](code_example.markdown)
 
 # About
