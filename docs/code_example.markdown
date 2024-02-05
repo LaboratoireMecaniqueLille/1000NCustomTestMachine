@@ -7,6 +7,17 @@ title: Code examples
 
 ## Crappy blocks
 
+In Crappy, even the most complex setups can be described with only two 
+elements: the Blocks and the Links. The Blocks are responsible for managing 
+data. There are many different types of Blocks, that all have a unique 
+function. Some will acquire data, others transform it, or use it to drive 
+hardware, etc. As the Blocks perform very specific tasks, a test script usually
+contains several Blocks (there is no upper limit). Blocks either take data as 
+an input, or they output data, or both. (<I>Crappy documentation </I>)
+
+More information about how Crappy works 
+<a href="https://crappy.readthedocs.io/en/stable/tutorials/getting_started.html">here</a>.
+
 ### Load cell block
 
 This IOBlock gets the current force measured by a 1000N load cell with a
@@ -14,6 +25,8 @@ Phidget Wheatstone Bridge, and sends it to downstream Blocks.
 
 ```python
 import crappy
+
+gain = 3.26496001e+05  # Gain calculated from the load cell calibration
 
 load_cell = crappy.blocks.IOBlock(
   'PhidgetWheatstoneBridge',  # The name of the InOut object to drive.
@@ -150,10 +163,16 @@ ve = crappy.blocks.VideoExtenso(
 
 ## Code example
 
-Several codes are available on 
+The Crappy codes here consist of linking the blocks from the previous section
+to perform tests.   
+
+The codes are available on 
 [GitHub](https://github.com/LaboratoireMecaniqueLille/1000NCustomTestMachine).
 
-The 
+They can be modified, particularly the Condition key for the Generator Path to 
+drive the test the way you want to.
+More information  about Generator Path 
+<a href="https://crappy.readthedocs.io/en/stable/crappy_docs/blocks.html#generator-paths">here</a>.
 
 ### machine_speed.py
 
@@ -243,5 +262,15 @@ Block and to a Recorder Block.
 After starting this script, the user have to select the spots to track in the
 configuration window by left-clicking and dragging. Then, close the
 configuration window and watch the strain be calculated in real time.
+
+### back_switch.py
+
+This example demonstrates how to move back the motor manually after hitting a 
+switch. It also shows the use of Crappy Blocks outside a Crappy loop.
+
+In this example, a Tkinter slider controlled by the user sends command to the
+Actuator Block. The slider sends speed command to drive the motor here.
+The user can only drive the motor in the opposite direction of the switch that
+has been hit.
 
 [Home page](index.markdown)
