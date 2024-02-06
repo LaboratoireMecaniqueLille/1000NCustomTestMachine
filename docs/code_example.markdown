@@ -161,7 +161,7 @@ ve = crappy.blocks.VideoExtenso(
     )
 ```
 
-## Code example
+## Code examples
 
 The Crappy codes here consist of linking the blocks from the previous section
 to perform tests.   
