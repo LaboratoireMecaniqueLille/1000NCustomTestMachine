@@ -76,7 +76,7 @@ A load cell utilizes the principle of strain gauges, which are thin conductive
 wires attached to its surface. When a force is applied, the material undergoes
 strain, causing a change in the electrical resistance of these strain gauges. 
 This change in resistance is then precisely measured and converted into an 
-electrical signal with here Wheatstone bridge, providing an accurate 
+electrical signal with here, a Wheatstone bridge, providing an accurate 
 representation of the applied force.
 
 Through calibration of the load cell, the relationship between the variation in
