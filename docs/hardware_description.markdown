@@ -90,3 +90,5 @@ In the python module Crappy the Wheatstone bridge corresponds to an IOBlock for
 the InOut: <B>PhidgetWheatstoneBridge</B>.
 
 More documentation about the sensor can be found <a href="https://www.phidgets.com/?prodid=957">here</a>. 
+
+[Home page](index.markdown)
