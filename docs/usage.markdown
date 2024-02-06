@@ -30,9 +30,9 @@ You can now enter the password of the Hub and open the Phidgets interface.
 
 ### 1.2 Ethernet
 
-Once the machine has been turned on, a new wi-fi network should appear in the 
-networks section of your computer: Phidgets_Hub5000_XXXXXX. To connect by wi-fi
-to the machine, click on this wi-fi network and enter the password: XXXXXXXX.
+Once the machine has been turned on, connect your computer with the machine 
+with an ethernet cable. Check the IPv4 settings of your wired connection. The
+Method should be set to Shared to other computers. If it is not, set it. 
 
 To check if you are connected and to check the configuration of the machine, 
 you can go to your internet browser and type hub5000.local in the address bar.
