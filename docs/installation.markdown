@@ -24,7 +24,7 @@ To install those modules:
 user@machine:~$ python3 -m pip install numpy
 user@machine:~$ python3 -m pip install matplotlib
 user@machine:~$ python3 -m pip install opencv-python
-user@machine:~$ python3 -m pip install tk
+user@machine:~$ sudo apt install python3-tk
 ```
 
 To install Crappy, please follow crappy documentation available 
