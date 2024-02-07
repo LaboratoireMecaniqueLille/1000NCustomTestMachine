@@ -20,7 +20,7 @@ import crappy
 if __name__ == '__main__':
 
   gain = 3.26496001e+05
-  save_folder = '/home/essais/Desktop/margotin/'
+  save_folder = '/home/'
   speed = 0.5  # Speed in mm/s
   thresh = 10  # Threshold force in N
 

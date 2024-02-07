@@ -20,7 +20,7 @@ import crappy
 
 if __name__ == '__main__':
 
-  save_folder = '/home/essais/Desktop/margotin/'
+  save_folder = '/home/'
 
   # This Machine Block drives a Phidget4AStepper in relative position.
   mot = crappy.blocks.Machine(
