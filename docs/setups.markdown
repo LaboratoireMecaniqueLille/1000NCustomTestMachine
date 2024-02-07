@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Setups
+title: Mechanical setups
 ---
 
 [Home page](index.markdown)
