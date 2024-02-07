@@ -8,6 +8,9 @@ title: Installation
 This page explains how to install the different python modules required to use 
 the 1000N Custom Test Machine.
 
+All the following commands have to be launched from a terminal. To open a 
+terminal with Linux, you can hit <B>CTRL+ALT+T</B>.
+
 ## Install Crappy
 
 The following modules are necessary to perform tests with the 1000N Custom Test
@@ -53,5 +56,14 @@ user@machine:~$ python3 -m pip install Phidget22
 
 More documentation for the Phidgets python libraries can be found 
 <a href="https://www.phidgets.com/docs/OS_-_Linux#Non-Root-1">here</a>. 
+
+## Install Git with Linux
+
+To get the python codes available on the GitHub page, you might want to clone 
+directly the repository. You will then need to install git packages.
+
+```console
+user@machine:~$ sudo apt install git-all
+```
 
 [Home page](index.markdown)
