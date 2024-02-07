@@ -156,9 +156,22 @@ You will have to wait four minutes and then reload the Phidgets interface.
 Then, when you come back to the Phidgets Control Panel, the 4A Stepper Phidget 
 should appear.
 
-## 3. Performing tests
+## 3. Get python codes from GitHub
 
-Now you are sure you are connected, the machine is ready for tests. 
+Now that the Phidgets Wireless VINT Hub is well configured, you can get the 
+different python codes available on the GitHub page. The easiest way to get 
+these codes is to clone the GitHub repository.
+
+To clone the repository, open a terminal and launch:
+
+```console
+user@machine:~$ git clone https://github.com/LaboratoireMecaniqueLille/1000NCustomTestMachine.git
+```
+
+## 4. Performing tests
+
+Now you are sure you are connected, you have the codes, the machine is ready 
+for tests. 
 
 The way to prepare the setup to test a sample is described in the
 [Mechanical setups](setups.markdown) page.
