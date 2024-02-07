@@ -38,6 +38,7 @@ To install Crappy, please follow crappy documentation available
 Install Phidget22 package
 
 ```console
+user@machine:~$ sudo apt install curl
 user@machine:~$ curl -fsSL https://www.phidgets.com/downloads/setup_linux | sudo -E bash - &&\
 sudo apt install -y libphidget22
 ```
