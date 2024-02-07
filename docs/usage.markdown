@@ -161,7 +161,7 @@ should appear.
 Now you are sure you are connected, the machine is ready for tests. 
 
 The way to prepare the setup to test a sample is described in the
-[Setups](setups.markdown) page.
+[Mechanical setups](setups.markdown) page.
 
 The different codes you can launch with python are described in the 
 [Code examples](code_example.markdown) page.
