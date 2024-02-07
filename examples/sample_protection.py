@@ -64,6 +64,11 @@ if __name__ == '__main__':
                                   'value1': -speed,
                                   'value2': speed}])
 
+  # This Block allows the user to properly exit the script
+  stop = crappy.blocks.StopButton(
+      # No specific argument to give for this Block
+  )
+
   # This Grapher displays the force as measured by the LoadCell Block.
   graph_force = crappy.blocks.Grapher(('t(s)', 'F(N)'))
 

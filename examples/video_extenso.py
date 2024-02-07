@@ -90,6 +90,11 @@ if __name__ == '__main__':
       num_spots=4,  # Number of spots on the sample (0,1,2,3,4).
       )
 
+  # This Block allows the user to properly exit the script
+  stop = crappy.blocks.StopButton(
+      # No specific argument to give for this Block
+  )
+
   # This Grapher displays the extension as computed by the VideoExtenso Block.
   graph_def_eyy = crappy.blocks.Grapher(('t(s)', 'Eyy(%)'))
 

@@ -40,6 +40,11 @@ if __name__ == '__main__':
                                   'condition': 'delay=10'}
                                  ])
 
+  # This Block allows the user to properly exit the script
+  stop = crappy.blocks.StopButton(
+      # No specific argument to give for this Block
+  )
+
   # This Grapher displays the real-time emulated position of the motor.
   graph_pos = crappy.blocks.Grapher(('t(s)', 'pos'))
 
