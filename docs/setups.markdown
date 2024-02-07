@@ -64,70 +64,6 @@ The steps to set up a tensile test are given below:
 
 <br>
 
-## Flexion setup
-
-<p align="center">
-<img src="./images/flexion1.png" align="center" title="Flexion setup">
-</p>
-
-<br>
-
-<p align="center">
-<img src="./images/flexion2.png" align="center" title="Flexion setup">
-</p>
-
-<br>
-
-The steps to set up a flexion test are given below:
-
-#### Left step 0:
-
-<p align="center">
-<img src="./images/flexion/0.png" height="300" width="350" align="center" title="Flexion step 0 left">
-</p>
-
-<br>
-
-#### Left step 1:
-
-<p align="center">
-<img src="./images/flexion/1.png" height="300" width="350" align="center" title="Flexion step 1 left">
-</p>
-
-<br>
-
-#### Left step 2:
-
-<p align="center">
-<img src="./images/flexion/2.png" height="300" width="350" align="center" title="Flexion step 2 left">
-</p>
-
-<br>
-
-#### Right step 0:
-
-<p align="center">
-<img src="./images/flexion/0'.png" height="200" width="350" align="center" title="Flexion step 0 right">
-</p>
-
-<br>
-
-#### Right step 1:
-
-<p align="center">
-<img src="./images/flexion/1'.png" height="200" width="350" align="center" title="Flexion step 1 right">
-</p>
-
-<br>
-
-#### Right step 2:
-
-<p align="center">
-<img src="./images/flexion/2'.png" height="200" width="350" align="center" title="Flexion step 2 right">
-</p>
-
-<br>
-
 ## Compact tension setup
 
 <p align="center">
@@ -279,4 +215,78 @@ The steps to set up a tensile test on elastomer are given below:
 </p>
 
 <br>
+
+The washers used for step 6 and step 7 are really important because they ensure
+flatness when screwing the nut.
+
+<p align="center">
+<img src="./images/elasto/9.png" height="300" width="350" align="center" title="Traction on elastomer washers">
+</p>
+
+<br>
+
+## Flexion setup (not tested for now)
+
+<p align="center">
+<img src="./images/flexion1.png" align="center" title="Flexion setup">
+</p>
+
+<br>
+
+<p align="center">
+<img src="./images/flexion2.png" align="center" title="Flexion setup">
+</p>
+
+<br>
+
+The steps to set up a flexion test are given below:
+
+#### Left step 0:
+
+<p align="center">
+<img src="./images/flexion/0.png" height="300" width="350" align="center" title="Flexion step 0 left">
+</p>
+
+<br>
+
+#### Left step 1:
+
+<p align="center">
+<img src="./images/flexion/1.png" height="300" width="350" align="center" title="Flexion step 1 left">
+</p>
+
+<br>
+
+#### Left step 2:
+
+<p align="center">
+<img src="./images/flexion/2.png" height="300" width="350" align="center" title="Flexion step 2 left">
+</p>
+
+<br>
+
+#### Right step 0:
+
+<p align="center">
+<img src="./images/flexion/0'.png" height="200" width="350" align="center" title="Flexion step 0 right">
+</p>
+
+<br>
+
+#### Right step 1:
+
+<p align="center">
+<img src="./images/flexion/1'.png" height="200" width="350" align="center" title="Flexion step 1 right">
+</p>
+
+<br>
+
+#### Right step 2:
+
+<p align="center">
+<img src="./images/flexion/2'.png" height="200" width="350" align="center" title="Flexion step 2 right">
+</p>
+
+<br>
+
 [Home page](index.markdown)
