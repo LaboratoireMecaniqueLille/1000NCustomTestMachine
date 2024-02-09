@@ -39,6 +39,8 @@ load_cell = crappy.blocks.IOBlock(
   gain=gain,  # Gain of the load cell.
   )
 ```
+More information about this block 
+<a href="https://crappy.readthedocs.io/en/stable/crappy_docs/inouts.html#phidget-wheatstone-bridge">here</a>. 
 
 ### Motor block (speed mode)
 
@@ -63,6 +65,8 @@ mot = crappy.blocks.Machine(
     # switches are connected.
     }])
 ```
+More information about this block 
+<a href="https://crappy.readthedocs.io/en/stable/crappy_docs/actuators.html#phidget-stepper4a">here</a>. 
 
 ### Motor block (position mode)
 
@@ -160,6 +164,37 @@ ve = crappy.blocks.VideoExtenso(
     num_spots=4,  # Number of spots on the sample (0,1,2,3,4).
     )
 ```
+More information about this block 
+<a href="https://crappy.readthedocs.io/en/stable/crappy_docs/blocks.html#video-extenso">here</a>. 
+
+### DIC video extenso Block
+
+This DICVE Block calculates the strain of the image by tracking patches using 
+Digital Image Correlation techniques.
+
+```python
+import crappy
+
+dic_ve = crappy.blocks.DICVE(
+    'CameraGstreamer',  # The name of Camera to open.
+    device='/dev/video2',  # The camera port.
+    config=True,  # Displaying the configuration window before starting,
+    # mandatory if the patches to track ar not given as arguments
+    display_images=True,  # The displayer window will allow to follow the
+    # patches on the speckle image
+    freq=50,  # Frequency.
+    save_images=True,  # True to save the images, False to not.
+    save_folder=save_folder,  # Path to the folder where to save the images.
+    patches=None,  # The patches to track are not provided here, so they must
+    # be selected in the configuration window
+    # The labels for sending the calculated strain to downstream Blocks
+    labels=('t(s)', 'meta', 'Coord(px)', 'Eyy(%)', 'Exx(%)', 'Disp(px)'),
+    method='Disflow',  # The default image correlation method
+    # Sticking to default for the other arguments
+)
+```
+More information about this block 
+<a href="https://crappy.readthedocs.io/en/stable/crappy_docs/blocks.html#dic-ve">here</a>. 
 
 ## Code examples
 
@@ -260,6 +295,24 @@ The InOut Block measured the force applied, and also outputs it to a Grapher
 Block and to a Recorder Block.
 
 After starting this script, the user have to select the spots to track in the
+configuration window by left-clicking and dragging. Then, close the
+configuration window and watch the strain be calculated in real time.
+
+### DIC.py
+
+This example demonstrates the use of the DICVE Block.
+This Block computes the strain on acquired images by tracking several patches
+using digital image correlation techniques. It outputs the computed strain as
+well as the position and displacement of the patches.
+
+In this example, the level of strain is controlled by a Generator Block that
+sends command to the Machine Block. This Machine Block drives the motor in
+speed here. The DICVE Block calculates the strain on the images, and
+outputs it to a Grapher Block for display and to a Recorder Block for save.
+The InOut Block measured the force applied, and also outputs it to a Grapher
+Block and to a Recorder Block.
+
+After starting this script, you have to select the patches to track in the
 configuration window by left-clicking and dragging. Then, close the
 configuration window and watch the strain be calculated in real time.
 
