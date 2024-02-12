@@ -30,7 +30,7 @@ if __name__ == '__main__':
     'PhidgetWheatstoneBridge',  # The name of the InOut object to drive.
     labels=['t(s)', 'F(N)'],  # The names of the labels to output.
     make_zero_delay=1,  # To offset the values acquired during the delay to the
-    # rest of.
+    # rest of. Remove this parameter to avoid the offset.
     remote=True,  # True if connected to a wireless VINT Hub, False if
     # connected to a USB VINT Hub.
     channel=1,  # Channel of the Wheatstone Bridge.
