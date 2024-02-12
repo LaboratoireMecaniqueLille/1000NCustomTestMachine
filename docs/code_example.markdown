@@ -32,7 +32,7 @@ load_cell = crappy.blocks.IOBlock(
   'PhidgetWheatstoneBridge',  # The name of the InOut object to drive.
   labels=['t(s)', 'F(N)'],  # The names of the labels to output.
   make_zero_delay=1,  # To offset the values acquired during the delay to the
-  # rest of
+  # rest of. Remove this parameter to avoid the offset.
   remote=True,  # True if connected to a wireless VINT Hub, False if 
   # connected to a USB VINT Hub
   channel=1,  # Channel of the Wheatstone Bridge.
@@ -266,9 +266,28 @@ threshold value (10 N), the motor will move at speed = 0.5 mm/s in the
 appropriate direction so that the force stays lesser (resp. greater) than the
 threshold value.
 
-This Machine Block drives the motor in speed here.
+The Machine Block drives the motor in speed here.
 The InOut Block measured the force applied, and also outputs it to a Grapher
 Block and to a Recorder Block.
+
+This code can also be used to bring back the sample to a 0 N force state by
+removing the `make_zero_delay` argument of the load cell Block. This Block will
+then be like:
+
+```python
+import crappy
+
+gain = 3.26496001e+05  # Gain calculated from the load cell calibration
+
+load_cell = crappy.blocks.IOBlock(
+  'PhidgetWheatstoneBridge',  # The name of the InOut object to drive.
+  labels=['t(s)', 'F(N)'],  # The names of the labels to output.
+  remote=True,  # True if connected to a wireless VINT Hub, False if 
+  # connected to a USB VINT Hub
+  channel=1,  # Channel of the Wheatstone Bridge.
+  gain=gain,  # Gain of the load cell.
+  )
+```
 
 ### load_cell.py
 
