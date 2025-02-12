@@ -41,7 +41,7 @@ if __name__ == '__main__':
       'absolute_mode': True,  # If True, get the position in reference of
       # the value given.
       'reference_pos': 20,  # Reference position example.
-      'switch_ports': (1, 2),  # Port numbers of the VINT Hub where the
+      'switch_ports': (2, 3),  # Port numbers of the VINT Hub where the
       # switches are connected.
       'save_last_pos': True,  # If True, save the last position acquired in a
       # .npy file.
