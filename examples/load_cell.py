@@ -43,7 +43,7 @@ if __name__ == '__main__':
       # reach in mm/s².
       'remote': True,  # True if connected to a wireless VINT Hub, False if
       # connected to a USB VINT Hub.
-      'switch_ports': (1, 2),  # Port numbers of the VINT Hub where the
+      'switch_ports': (2, 3),  # Port numbers of the VINT Hub where the
       # switches are connected.
       }])
 
