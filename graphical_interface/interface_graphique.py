@@ -5,12 +5,13 @@ import tkinter as tk
 import tkinter.filedialog as tkFileDialog
 import tomllib
 import sys
-import argparse
+import argparse  # ToDo: inutilisé
 import os
 from datetime import datetime
-import importlib.util
+import importlib.util  # ToDo: inutilisé
 import time
 
+# ToDo: vérifier si toujours utile
 BASE_DIR = os.environ.get('BASE_DIR')
 if not BASE_DIR:
     raise EnvironmentError("The variable BASE_DIR was not defined")
@@ -18,7 +19,8 @@ if not BASE_DIR:
 """BASE_DIR = "/home/stagiaire/Codes/essai_traction" """
 path_crappy = BASE_DIR + "../crappy/src"
 
-sys.path.append(os.path.abspath(path_crappy))
+sys.path.append(os.path.abspath(path_crappy))  # ToDo: pas utile
+# ToDo: bouger les imports en début de fichier
 import crappy.actuator.phidgets_stepper4a as ph_stp
 import crappy.inout.phidgets_wheatstone_bridge as ph_whe
 
@@ -28,6 +30,8 @@ class TensileTestP1(tk.Tk):
     def __init__(self, premier_appel, default_speed="1", default_l0="10", default_save_path="",
                  default_load_cell="", default_test_type=""):
         super().__init__()
+
+        # ToDo: premier_appel inutile ? + autres arguments inutiles ?
         
         if premier_appel :
             try:
@@ -42,16 +46,17 @@ class TensileTestP1(tk.Tk):
                 default_test_type = doc['data']['test_type']
 
             except (OSError, tomllib.TOMLDecodeError) as e:
+                # ToDo: on veut savoir ce que c'est comme erreur
                 pass
 
 
         # Initialisation des attributs
-        self.label_chemin = None
+        self.label_chemin = None  # ToDo: inutilisé
         self.is_calibrated = False
         self.in_position = False
         self.path_save_data = default_save_path
 
-        self.calibrated_pos = 0
+        self.calibrated_pos = 0  # ToDo: plutôt utiliser None et gérer les cas
         
         # Configuration de la fenêtre
         self.title("Initiating the tensile test")
@@ -135,7 +140,7 @@ class TensileTestP1(tk.Tk):
         """Crée les widgets pour les paramètres"""
         # Speed
 
-        self.speed_var = tk.StringVar(value=float(default_speed))
+        self.speed_var = tk.StringVar(value=float(default_speed))  # ToDo: plutôt DoubleVar
 
         lbl1 = tk.Label(self.frame_gauche, text='Speed (mm/s)',
                        font=("Helvetica",14), wraplength=225)
@@ -151,7 +156,7 @@ class TensileTestP1(tk.Tk):
 
         # Initial distance
 
-        self.l0_var = tk.StringVar(value=float(default_l0))
+        self.l0_var = tk.StringVar(value=float(default_l0))  # ToDo: plutôt DoubleVar
 
         lbl2 = tk.Label(self.frame_gauche, 
                         text='Initial distance between the grips (mm)', 
@@ -204,6 +209,7 @@ class TensileTestP1(tk.Tk):
         self.entry_folder = tk.Entry(self.frame_g_bas, width=25, textvariable=self.folder_var)
         self.entry_folder.grid(pady=(2,10), column=0, row=1)
 
+        # ToDo: use functools.partial()
         self.entry_folder.bind("<FocusOut>", lambda event: self.write_parameters(".default_set_parameters.toml"))
         self.entry_folder.bind("<Return>", lambda event: self.write_parameters(".default_set_parameters.toml"))
 
@@ -241,12 +247,14 @@ class TensileTestP1(tk.Tk):
     def save_data(self):
 
         self.path_save_data = tkFileDialog.askdirectory(initialdir="./results")
+        # Todo: gérer cas où ça cancel, vérifier si 1 seul argument ou plusieurs
         if not os.path.exists(self.path_save_data):
             try:
                 os.makedirs(self.path_save_data)
             except:
                 self.path_save_data = BASE_DIR + "/results/"
 
+        # ToDo: utiliser une StringVar non ?
         self.entry_folder.delete(0, tk.END)
         self.entry_folder.insert(tk.END, self.path_save_data)
         self.entry_folder.grid(column=0, row=1)
@@ -260,6 +268,7 @@ class TensileTestP1(tk.Tk):
 
         try:
             value = float(self.speed_var.get())
+            # ToDo: bouger except ici
 
             # Si valeur dans les limites
             if 0 <= value <= 2.5:
@@ -348,12 +357,14 @@ class TensileTestP1(tk.Tk):
                 path_results = self.nommer(BASE_DIR + "/results/",
                                                 debut="", extension="/")
 
+        # ToDo: utiliser un dict CONST en début de fichier
         if self.load_cell_var.get() == "50N":
             gain = 3.26496001e+05 
         else:
             gain = 1
 
 
+        # ToDo: probablement des méthodes dispos dans tomllib
         text1 = "[data]\n"
         text2save = (text1 +
                     f'speed = {self.speed_var.get()}\n' +
@@ -372,6 +383,7 @@ class TensileTestP1(tk.Tk):
             tk.messagebox.showerror("Erreur", f"Échec de sauvegarde:\n{str(e)}", parent=self)
 
 
+    # ToDo: utiliser pathlib.Path pour tout ce qui concerne les fichiers
     #permet de nommer automatiquement un fichier/ dossier en cas de sauvegarde forcée
     def nommer(self, parent_path, debut="", extension=""):
         """Génère un nom unique pour les fichiers/dossiers"""
@@ -432,7 +444,9 @@ class TensileTestP1(tk.Tk):
             self.destroy()
         except:
             pass
-            
+
+        # ToDo: Juste update les champs (StringVar + var.trace_add('write', func))
+        # ToDo: aussi update valeurs par défaut
         # Recrée une nouvelle instance avec les paramètres chargés
         app = TensileTestP1(False, speed, l0, path_save_data, load_cell, test_type)
         app.mainloop()
@@ -444,10 +458,10 @@ class TensileTestP1(tk.Tk):
             message="Be careful, the limit switches are deactivated during this phase",
             parent=self
         )
-        print("protection_eprouvette")
+        print("protection_eprouvette")  # ToDo: Ecrire dans un fichier à la place a=$(cat fichier.txt)
         sys.stdout.flush()
         self.destroy()
-        sys.exit(0)
+        sys.exit(0)  # ToDo: self.destroy()
 
 
     # 1e étape de la calibration de position, en plaçant la cale
@@ -473,6 +487,7 @@ class TensileTestP1(tk.Tk):
             motor = ph_stp.Phidget4AStepper(steps_per_mm=2500, current_limit=3, 
                                            remote=True, absolute_mode=True, 
                                            reference_pos=0, switch_ports=())
+            # ToDo: prendre gain selon chix utilisateur
             load_cell = ph_whe.PhidgetWheatstoneBridge(channel=1, gain=3.26496001e+05, 
                                                      remote=True)
             motor.open()
@@ -491,14 +506,16 @@ class TensileTestP1(tk.Tk):
 
             while True:
                 time.sleep(0.05)  
-                data = load_cell.get_data()
+                data = load_cell.get_data()  # ToDo: choper direct _, force = load_cell.get_data()
 
+                # ToDo: cas où data is None
                 if data is not None and not hit_obstacle :
                     current_force = data[1]
 
                     if abs(current_force - initial_force) > force_max_calib:  
                         current_pos = motor.get_position()
 
+                        # ToDo: if pas nécessaire
                         if current_pos is not None:
                             hit_obstacle = True
                             new_target = current_pos + 5  # Recule de 5 mm
@@ -510,6 +527,8 @@ class TensileTestP1(tk.Tk):
                 if current_pos is not None and abs(current_pos - target_position) < 0.05:
                     self.calibrated_pos = taille_cale
                     break
+
+            # ToDo: mettre le bouton dès le début mais désactivé
             try:
                 self.btn_go.grid_info()
 
@@ -522,6 +541,7 @@ class TensileTestP1(tk.Tk):
                 self.btn_go.grid(pady=10, column=0, row=2)
 
 
+        # ToDo: finally inutile ici
         finally:
             motor.close()
             load_cell.close()
@@ -563,7 +583,8 @@ class TensileTestP1(tk.Tk):
                 current_pos = motor.get_position()
                 if current_pos is not None and abs(current_pos - target_position) < 0.05:
                     break
-                
+
+        # ToDo: finally inutile ici
         finally:
             motor.close()
             load_cell.close()
@@ -575,7 +596,7 @@ class TensileTestP1(tk.Tk):
     def close_cross(self):
         self.write_parameters(".default_set_parameters.toml")
         print("exit")
-        sys.exit(1)
+        sys.exit(1)  # ToDo: self.destroy()
 
     #lancement de l'essai à proprement parler,en emêchant l'utilisateur de commencer s'il n'y a pas eu de calibration
     def demarrage(self):
@@ -603,6 +624,7 @@ class TensileTestP1(tk.Tk):
 
             try:
                 self.destroy()
+            # ToDo: retire ça
             except:
                 pass
 

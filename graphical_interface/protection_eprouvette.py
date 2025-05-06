@@ -16,7 +16,7 @@ You can hit CTRL+C to stop it, but it is not a clean way to stop Crappy.
 """
 
 import crappy
-import tkinter.filedialog as tkFileDialog
+import tkinter.filedialog as tkFileDialog  # ToDo: inutilisé
 import tomllib
 import os
 
