@@ -1,103 +1,179 @@
-"""
-This example can be used to protect your sample during the tightening of the
-sample to the machine.
-
-In this example, the motor is driven in function of the level of stress in the
-sample. If the force measured by the load cell is greater (resp. lesser) than a
-threshold value (10 N), the motor will move at speed = 0.5 mm/s in the
-appropriate direction so that the force stays lesser (resp. greater) than the
-threshold value.
-
-This Machine Block drives the motor in speed here.
-The InOut Block measured the force applied, and also outputs it to a Grapher
-Block and to a Recorder Block.
-
-You can hit CTRL+C to stop it, but it is not a clean way to stop Crappy.
-"""
-
-import crappy
-import tkinter.filedialog as tkFileDialog  # ToDo: inutilisé
 import tomllib
 import os
+import sys
+import tkinter as tk
+import time
+from pathlib import Path
+import threading
+import crappy.actuator.phidgets_stepper4a as ph_stp
+import crappy.inout.phidgets_wheatstone_bridge as ph_whe
+
+
+DICT_DEFAULT_PARAMETERS = {
+   "speed_levels":[0.5,1,1.5,2,2.5], #in mm/s
+   "thresh_force":[10,20,30,40,50] #in Newton
+}
 
 def open_file(path):
     with open(path, "rb") as f:
         data = tomllib.load(f)
-
     return data
 
 
+def control_loop(gui, motor, load_cell, initial_force, thresh_force, speed_levels):
+    while not gui.stop_flag:
+        if load_cell.get_data() is None:
+            tk.messagebox.showerror("Signal lost", 
+                    "The load cell unexpectedly stopped sending data\n"
+                    "Please check the connection and try again")
+            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Error: no more data coming from the motor")
+            gui.stop_flag = True
+            gui.error = True
+            break
+            
+        _, current_force = load_cell.get_data()
+        force = current_force - initial_force
+        print(force)
+        
+        if abs(force) < thresh_force[0] or abs(force) > thresh_force[-1]:
+            speed = 0
+        else:
+            for threshold, level_speed in zip(thresh_force, speed_levels):
+                if abs(force) >= threshold:
+                    speed = level_speed  # Garde la dernière vitesse valide
+                else:
+                    break  # Sortir dès qu'un seuil n'est pas atteint
+        
+        if force > 0:
+            motor.set_speed(-speed)
+        elif force < 0:
+            motor.set_speed(speed)
+        
+
+            
+    motor.set_speed(0)
+    motor.close()
+    load_cell.close()
+
+
+
+class ControlGUI:
+    def __init__(self):
+        self.root = tk.Tk()
+        self.root.title("Control")
+        self.stop_flag = False
+        self.error = False
+        self.create_widgets()
+        
+    def create_widgets(self):
+        self.stop_btn = tk.Button(self.root, text="Stop", command=self.stop, 
+                                fg="black", font=("Arial", 13))
+        self.stop_btn.pack(padx=20, pady=20)
+        
+    def stop(self):
+        self.stop_flag = True
+        self.root.destroy()
+
+
+
 if __name__ == '__main__':
-  BASE_DIR = os.environ.get('BASE_DIR')
+  print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Launching protection_eprouvette.py")
+
+  BASE_DIR = Path(os.environ.get('BASE_DIR'))
   if not BASE_DIR:
       raise EnvironmentError("The variable BASE_DIR was not defined")
 
-  path_set = BASE_DIR + "/.default_set_parameters.toml"
 
+  path_set = BASE_DIR / ".parameters/default_set_parameters.toml"
   try :
     donnees = open_file(path_set)
     gain = float(donnees['data']['gain'])
-    print(gain)
+    nb_steps = float(donnees['data']['nb_steps'])
+    print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Loading parameters from the .toml file")
   except:
-    gain = 3.26496001e+05 
+    print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),'The .toml file to communicate experimental parameters was not found, the program stopped')
+    try:
+        sys.exit()
+    except Exception as e:
+        tk.messagebox.showerror("Error", f"The program could not close", f"Error: {str(e)}")
+
+  thresh_force = DICT_DEFAULT_PARAMETERS.get("thresh_force")
+  speed_levels = DICT_DEFAULT_PARAMETERS.get("speed_levels")
+
+
+
+  print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Starting the motor now")
+
+  motor = None
+  load_cell = None
+  error_occurred = False
+
+  try:
+
+    motor = ph_stp.Phidget4AStepper(steps_per_mm=nb_steps, current_limit=3, 
+                                    remote=True, switch_ports=())
+    load_cell = ph_whe.PhidgetWheatstoneBridge(channel=1, gain = gain, 
+                                              remote=True)
+    motor.open()
+    load_cell.open()
+    print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Connection to the motor and to the load cell achieved")
+    time.sleep(1)
+
+
+    data = load_cell.get_data()
+    if data is None:
+        error_occurred = True
+        print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Error: no data received from the motor")
+        tk.messagebox.showerror(
+            "Captor error", 
+            "The load cell didn't send any value\n"
+            "Please check the connection and try again"
+        )
+    else:
+        initial_force = data[1]
+        
+
+    
+
+    if not error_occurred:
+        gui = ControlGUI()
+        
+        # Lancement de la boucle de contrôle dans un thread séparé
+        control_thread = threading.Thread(
+            target=control_loop,
+            args=(gui, motor, load_cell, initial_force, thresh_force, speed_levels),
+            daemon=True
+        )
+        control_thread.start()
+        
+        # Lancement de la boucle principale Tkinter
+        gui.root.mainloop()
+        
+        # Nettoyage après fermeture de la fenêtre
+        gui.stop_flag = True
+        control_thread.join(timeout=1)
+
+
+      
+        print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"End of the manual movement")
 
   
+  except Exception as e:
+      error_occurred = True
+      tk.messagebox.showerror("Error", f"An error occured during the setting in position",f"Error: {str(e)}")
 
-
-  speed = 2  # Speed in mm/s
-  thresh = 10  # Threshold force in N
-
-  # This IOBlock gets the current force measured by a 1000N load cell with a
-  # Phidget Wheatstone Bridge, and sends it to downstream Blocks.
-  load_cell = crappy.blocks.IOBlock(
-    'PhidgetWheatstoneBridge',  # The name of the InOut object to drive.
-    labels=['t(s)', 'F(N)'],  # The names of the labels to output.
-    make_zero_delay=1,  # To offset the values acquired during the delay to the
-    # rest of. Remove this parameter to avoid the offset.
-    remote=True,  # True if connected to a wireless VINT Hub, False if
-    # connected to a USB VINT Hub.
-    channel=1,  # Channel of the Wheatstone Bridge.
-    gain=gain,  # Gain of the load cell.
-  )
-
-  # This Machine Block drives a Phidget4AStepper in speed.
-  mot = crappy.blocks.Machine(
-    [{'type': 'Phidget4AStepper',  # The name of the Actuator to drive.
-      'mode': 'speed',  # Driving in speed mode, not in position mode.
-      'speed_label': 'speed',  # The label carrying the speed readout.
-      'position_label': 'pos',  # The label carrying the position readout.
-      'steps_per_mm': 2500,  # Number of steps necessary to move by 1 mm.
-      'current_limit': 3,  # Maximum current the driver is allowed to deliver
-      # to the motor, in A.
-      'max_acceleration': 20,  # Maximum acceleration the motor is allowed to
-      # reach in mm/s².
-      'remote': True,  # True if connected to a wireless VINT Hub, False if
-      # connected to a USB VINT Hub.
-      'switch_ports': (),  # Port numbers of the VINT Hub where the
-      # switches are connected. Désactivés pour pouvoir se décaler des switchs
-      }])
-
-  # This Generator generates the command for driving the Machine Block.
-  # The path drive the Machine in function of the force measured by the load
-  # cell.
-  gen = crappy.blocks.Generator([{'type': 'Conditional',
-                                  'condition1': f'F(N)>{thresh}',
-                                  'condition2': f'F(N)<-{thresh}',
-                                  'value0': 0,
-                                  'value1': -speed,
-                                  'value2': speed}])
-
-  # This Block allows the user to properly exit the script
-  stop = crappy.blocks.StopButton(
-      # No specific argument to give for this Block
-  )
-
-  # This Grapher displays the force as measured by the LoadCell Block.
-  graph_force = crappy.blocks.Grapher(('t(s)', 'F(N)'))
-
-  # Linking the Block so that the information is correctly sent and received.
-  crappy.link(gen, mot)
-  crappy.link(load_cell, gen)
-  crappy.link(load_cell, graph_force)
-
-  crappy.start()
+  finally:
+      if not error_occurred and not gui.error:
+          print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Setting in position succeeded")
+                
+      else:
+          print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Setting in position failed")
+    
+      try:
+          motor.close()
+          load_cell.close()
+          print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Closing the motor and the load cell")
+      except:
+          pass
+      
+      print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Going back to the graphical interface")

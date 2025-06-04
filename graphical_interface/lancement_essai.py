@@ -1,8 +1,11 @@
 import crappy
-import tkinter.filedialog as tkFileDialog  # ToDo: inutilisé
+import tkinter as tk 
 import tomllib
 import os
-
+from pathlib import Path
+import sys
+import time
+import ast
 
 def open_file(path):
     with open(path, "rb") as f:
@@ -11,13 +14,18 @@ def open_file(path):
     return data
 
 
+
 if __name__ == '__main__':
 
-  BASE_DIR = os.environ.get('BASE_DIR')
+  print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Launching lancement_essai.py")
+
+  BASE_DIR = Path(os.environ.get('BASE_DIR'))
   if not BASE_DIR:
       raise EnvironmentError("The variable BASE_DIR was not defined")
+  
+  print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Launching the test")
 
-  path_set = BASE_DIR + "/.default_set_parameters.toml"
+  path_set = BASE_DIR / ".parameters/default_set_parameters.toml"
 
   try :
     donnees = open_file(path_set)
@@ -25,32 +33,35 @@ if __name__ == '__main__':
     speed = float(donnees['data']['speed'])
     l0 = float(donnees['data']['l0'])
     path_save_data = donnees['data']['path_save_data']
-    #load_cell = donnees['data']['load_cell']
-    load_cell = "972.7N"
+    load_cell = donnees['data']['load_cell']
     test_type = donnees['data']['test_type']
     gain = float(donnees['data']['gain'])
-    save_path = path_save_data
+    prefix = donnees['data']['prefix']
+    ports = ast.literal_eval(donnees['data']['ports'])
+    ports_state = ast.literal_eval(donnees['data']['ports_state'])
+    nb_steps = int(donnees['data']['nb_steps'])
+    save_path = Path(path_save_data)
+
+    print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Loading parameters from the .toml file")
 
   except:
-    print('probleme_toml_manquant')
+    print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),'The .toml file to communicate experimental parameters was not found, the program stopped')
+    try:
+        sys.exit(1)
+    except Exception as e:
+        tk.messagebox.showerror("Error", f"The program could not close ", f"Error: {str(e)}",)
+        print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),f"The program could not close :\n{str(e)}")
 
-  """speed = 2
-  l0 = 68
-  path_save_data = "/home/stagiaire/Codes/essai_traction/results/1/"
-  load_cell = "50N"
-  test_type = "Monotone Uniaxial Tensile Test"
-  gain = 3.26496001e+05
-  save_path = path_save_data"""
-
-
-  force_max = "F(N)>" + load_cell.replace('N', '')
+  
   
 
-  if test_type == "Monotone Uniaxial Tensile Test":
+  if test_type == "Monotonic Uniaxial Tensile Test":
 
+    force_max = "F(N)>" + load_cell.replace('N', '')
 
-    # This IOBlock gets the current force measured by a 1000N load cell with a
-    # Phidget Wheatstone Bridge, and sends it to downstream Blocks.
+    print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Starting the monotonic uniaxial tensile test now \n")
+
+    #Load cell
     load_cell = crappy.blocks.IOBlock(
       'PhidgetWheatstoneBridge',  # The name of the InOut object to drive.
       labels=['t(s)', 'F(N)'],  # The names of the labels to output.
@@ -61,48 +72,47 @@ if __name__ == '__main__':
       channel=1,  # Channel of the Wheatstone Bridge.
       gain=gain,  # Gain of the load cell.
       data_rate=10,
+      hardware_gain=128,
     )
 
-    """
-    # This Machine Block drives a Phidget4AStepper in speed.
-    motor = crappy.actuator.Phidget4AStepper(switch_ports = (2, 3) ,current_limit= 3 , steps_per_mm= 2500)
-    motor.open()
-    motor.set_position(l0/2,50)
-    """
-
+    #Motor
     mot = crappy.blocks.Machine(
       [{'type': 'Phidget4AStepper',  # The name of the Actuator to drive.
         'mode': 'speed',  # Driving in speed mode, not in position mode.
         'speed_label': 'speed',  # The label carrying the speed readout.
         'position_label': 'x(mm)',  # The label carrying the position readout.
-        'steps_per_mm': 2500,  # Number of steps necessary to move by 1 mm.
+        'steps_per_mm': nb_steps,  # Number of steps necessary to move by 1 mm.
         'current_limit': 3,  # Maximum current the driver is allowed to deliver
         # to the motor, in A.
         'max_acceleration': 20,  # Maximum acceleration the motor is allowed to
         # reach in mm/s².
         'remote': True,  # True if connected to a wireless VINT Hub, False if
         # connected to a USB VINT Hub.
-        'switch_ports': (2, 3),  # Port numbers of the VINT Hub where the
+        'switch_ports': ports,  # Port numbers of the VINT Hub where the
         # switches are connected.
+        'switch_states': ports_state,
         'absolute_mode': True,
-        'reference_pos':l0,
+        'reference_pos': l0,
+        'save_last_pos': True,
+        'save_pos_folder': BASE_DIR /".parameters",
         }])
 
-    # This Generator generates the command for driving the Machine Block.
-    # The path drive the Machine in function of the force measured by the load
-    # cell.
+    #Generator
     gen = crappy.blocks.Generator([{'type':'Constant','condition':force_max,'value':speed}],freq=100)
 
-    # This Block allows the user to properly exit the script
+    #Stop button
     stop = crappy.blocks.StopButton(
         # No specific argument to give for this Block
     )
 
     #Enregistrement et réunion des données
-    record_f = crappy.blocks.Recorder(save_path + 'effort.csv', labels=['t(s)', 'F(N)'])
-    record_pos = crappy.blocks.Recorder(save_path + 'position.csv', labels=['x(mm)'])
+    effort = prefix + 'effort.csv'
+    position = prefix + 'position.csv'
+    data_t = prefix + 'data.csv'
+    record_f = crappy.blocks.Recorder(save_path / effort, labels=['t(s)', 'F(N)'])
+    record_pos = crappy.blocks.Recorder(save_path / position, labels=['x(mm)'])
     multiplex = crappy.blocks.Multiplexer()
-    rec = crappy.blocks.Recorder(save_path + 'data.csv', labels=['t(s)','F(N)','x(mm)'])
+    rec = crappy.blocks.Recorder(save_path / data_t, labels=['t(s)','F(N)','x(mm)'])
 
 
 
@@ -133,4 +143,4 @@ if __name__ == '__main__':
 
     crappy.start()
 
-    print('succes_test')
+    print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),'Test done, closing now')

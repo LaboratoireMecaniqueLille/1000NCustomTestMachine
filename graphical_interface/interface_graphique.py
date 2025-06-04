@@ -1,62 +1,129 @@
-#Imports
-
 import random
+import numpy as np
 import tkinter as tk
 import tkinter.filedialog as tkFileDialog
 import tomllib
-import sys
-import argparse  # ToDo: inutilisé
 import os
-from datetime import datetime
-import importlib.util  # ToDo: inutilisé
+from datetime import datetime, time as dt_time
 import time
-
-# ToDo: vérifier si toujours utile
-BASE_DIR = os.environ.get('BASE_DIR')
-if not BASE_DIR:
-    raise EnvironmentError("The variable BASE_DIR was not defined")
-
-"""BASE_DIR = "/home/stagiaire/Codes/essai_traction" """
-path_crappy = BASE_DIR + "../crappy/src"
-
-sys.path.append(os.path.abspath(path_crappy))  # ToDo: pas utile
-# ToDo: bouger les imports en début de fichier
+from pathlib import Path
+from functools import partial
+import tomllib
 import crappy.actuator.phidgets_stepper4a as ph_stp
 import crappy.inout.phidgets_wheatstone_bridge as ph_whe
+import sys
+
+
+#constant obtained while executing the bash file
+BASE_DIR = Path(os.environ.get('BASE_DIR')) 
+if not BASE_DIR:
+    print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"The variable BASE_DIR was not defined")
+    sys.exit(1)
+print("\n",time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())), "The selected base folder is :", BASE_DIR)
+
+
+#group of constants modifiable  
+#folder to save the results by default
+saving_folder = BASE_DIR / "results"
+
+#hidden folder for parameters.toml, commande.txt and last_pos.npy
+hidden_folder = BASE_DIR / ".parameters"
+
+#default parameters (in case the .toml file went missing and the program creats it automatically)
+DICT_DEFAULT_VALUES = { 
+    "speed":1, #float
+    "l0":20, #float
+    "saving_folder":saving_folder
+}
+
+#all the possible load cells , and the associated gain (the name of the load cell has to be the maximaum force followed by "N")
+DICT_LOAD_CELLS = {
+    "50N":3.26496001e+05,
+    "225N":34911.5 #voir si besoin d'adapter à un gain hardware
+}
+
+#all possible types of test (they have to be programmed in lancement_essai.py)
+DICT_TEST_TYPES = {
+    "Monotonic Uniaxial Tensile Test": "MUTT"
+}
+
+#size of the wedge to calibrate the motor, how much the motor needs to shift after the calibration, and the force necessary to stop the calibration
+TAILLE_CALE = 14 #in mm
+DECALAGE_POST_CALIBRATION = 5 #in mm
+FORCE_MAX_CALIB= 10 #in N 
+
+#motor_speed (tells the motor how much it needs to move of a mm)
+nb_steps_mm = 2500 #common values : 100 or 2500
+
+#list of ports and their default state following their use
+#True means open by default, False means close by default 
+ports_movement = tuple([2,3]) #for the final machine tuple([2,3])
+switch_states_movement = tuple([True, True]) #for the final machine tuple([True, False])
+ports_calibration = tuple([2,3]) #for the final machine tuple([5])
+switch_states_calibration = tuple([True]) #for the final machine tuple([ ... ])
+
+
+
+
 
 class TensileTestP1(tk.Tk):
 
-    #initialisation
-    def __init__(self, premier_appel, default_speed="1", default_l0="10", default_save_path="",
-                 default_load_cell="", default_test_type=""):
+    #initialisation : chargement des paramètres par défaut, initialisation des paramèters, et création de la fenêtre
+    def __init__(self):
         super().__init__()
 
-        # ToDo: premier_appel inutile ? + autres arguments inutiles ?
-        
-        if premier_appel :
+        print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())), "Launching interface_graphique.py")
+
+        # chargement du fichier .toml
+        filepath = hidden_folder / "default_set_parameters.toml"
+        try:
+            with open(filepath, "rb") as f:
+                doc = tomllib.load(f)
+
+            default_speed = doc['data']['speed']
+            default_l0 = doc['data']['l0']
+            default_save_path = Path(doc['data']['path_save_data'])
+            default_load_cell = doc['data']['load_cell']
+            default_test_type = doc['data']['test_type']
+
+            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Parameters charged from the last use")
+
+        except Exception as e:
+            tk.messagebox.showinfo(title="Parameters file missing",
+                                   message=f"An error occured loading the .toml file, a new parameters file will soon be created",
+                                   detail=f"Error: {str(e)}")
+            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),f"An error occured loading the .toml file :\n{str(e)}\nA new parameters file will soon be created")
+            
+            self.create_default_parameters()
+            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"New parameters set written succesfully")
+
+            filepath = hidden_folder / "default_set_parameters.toml"
             try:
-                filepath = os.path.join(BASE_DIR, ".default_set_parameters.toml")
                 with open(filepath, "rb") as f:
                     doc = tomllib.load(f)
 
                 default_speed = doc['data']['speed']
                 default_l0 = doc['data']['l0']
-                default_save_path = doc['data']['path_save_data']
+                default_save_path = Path(doc['data']['path_save_data'])
                 default_load_cell = doc['data']['load_cell']
                 default_test_type = doc['data']['test_type']
 
-            except (OSError, tomllib.TOMLDecodeError) as e:
-                # ToDo: on veut savoir ce que c'est comme erreur
-                pass
+                print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"New parameters set loaded succesfully")
+
+
+            except Exception as e2:  
+                tk.messagebox.showerror("Error", f"The creation or reading of the new parameters file did not work", f"Error: {str(e2)}")
+                print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),f"The creation or reading of the new parameters file did not work:\n{str(e2)}")
+                print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"As the program could not write or load a parameters set, the programm stopped")
+                self.ecriture_commande("exit")
 
 
         # Initialisation des attributs
-        self.label_chemin = None  # ToDo: inutilisé
-        self.is_calibrated = False
         self.in_position = False
         self.path_save_data = default_save_path
-
-        self.calibrated_pos = 0  # ToDo: plutôt utiliser None et gérer les cas
+        self.liste_buttons = []
+        self.calibrated_pos = None
+        self.l0 = default_l0
         
         # Configuration de la fenêtre
         self.title("Initiating the tensile test")
@@ -72,7 +139,6 @@ class TensileTestP1(tk.Tk):
 
     #Création de tous les widgets de la page, en appelant create_parameter_widgets et create_action_widgets
     def create_widgets(self, default_speed, default_l0, default_load_cell, default_test_type):
-        """Crée tous les widgets de l'interface"""
         # Titre
         lbl_titre = tk.Label(self, text="Welcome", font=("Helvetica",20, "bold"),
                             wraplength=150, foreground=self.create_couleur_titre())
@@ -87,13 +153,14 @@ class TensileTestP1(tk.Tk):
         self.create_action_widgets()
 
         # Bouton Start
-        btn_start = tk.Button(self, text="Start", font=("Helvetica",13, "bold"),
+        self.btn_start = tk.Button(self, text="Start", font=("Helvetica",13, "bold"),
                             foreground="red", command=self.demarrage)
 
         
         self.frame_gauche.grid(column=1, row=1, columnspan=1, rowspan=2)
         self.frame_droite.grid(column=3, row=1, columnspan=1, rowspan=2)
-        btn_start.grid(pady=2, column=2, row=3)
+        self.btn_start.grid(pady=2, column=2, row=3)
+        self.liste_buttons.append(self.btn_start)
 
 
         self.columnconfigure(0, weight=1)
@@ -132,15 +199,14 @@ class TensileTestP1(tk.Tk):
         self.frame_d_milieu.rowconfigure(0, weight=1)
         self.frame_d_milieu.rowconfigure(1, weight=1)
 
+        print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Initialization of the window done")
+
         
-
-
     #crée la partie gauche de la page, avec les cases à remplir et menus
     def create_parameter_widgets(self, default_speed, default_l0, default_load_cell, default_test_type):
-        """Crée les widgets pour les paramètres"""
-        # Speed
 
-        self.speed_var = tk.StringVar(value=float(default_speed))  # ToDo: plutôt DoubleVar
+        # Speed
+        self.speed_var = tk.DoubleVar(value=float(default_speed)) 
 
         lbl1 = tk.Label(self.frame_gauche, text='Speed (mm/s)',
                        font=("Helvetica",14), wraplength=225)
@@ -155,8 +221,7 @@ class TensileTestP1(tk.Tk):
 
 
         # Initial distance
-
-        self.l0_var = tk.StringVar(value=float(default_l0))  # ToDo: plutôt DoubleVar
+        self.l0_var = tk.DoubleVar(value=float(default_l0))  
 
         lbl2 = tk.Label(self.frame_gauche, 
                         text='Initial distance between the grips (mm)', 
@@ -173,7 +238,7 @@ class TensileTestP1(tk.Tk):
 
 
         # Load Cell
-        options_load_cell = ["50N", "100N", "200N"]
+        options_load_cell = list(DICT_LOAD_CELLS.keys())
         initial_load_cell = default_load_cell if default_load_cell in options_load_cell else options_load_cell[0]
         self.load_cell_var = tk.StringVar(value=initial_load_cell)
 
@@ -181,12 +246,12 @@ class TensileTestP1(tk.Tk):
                         font=("Helvetica",14), wraplength=600)
         lbl3.grid(pady=(10,2), column=0, row=4)
 
-        lbl_menu1 = tk.OptionMenu(self.frame_gauche, self.load_cell_var, *options_load_cell, command=lambda _: self.write_parameters(".default_set_parameters.toml"))
+        lbl_menu1 = tk.OptionMenu(self.frame_gauche, self.load_cell_var, *options_load_cell, command=lambda _: self.write_parameters(hidden_folder / "default_set_parameters.toml"))
         lbl_menu1.grid(pady=(2,10), column=0, row=5)
 
 
         # Test Type
-        options_test_type = ["Monotone Uniaxial Tensile Test"]
+        options_test_type = list(DICT_TEST_TYPES.keys())
         initial_test_type = default_test_type if default_test_type in options_test_type else options_test_type[0]
         self.test_type_var = tk.StringVar(value=initial_test_type)
 
@@ -194,7 +259,7 @@ class TensileTestP1(tk.Tk):
                        font=("Helvetica",14), wraplength=600)
         lbl4.grid(pady=(10,2), column=0, row=6)
 
-        lbl_menu2 = tk.OptionMenu(self.frame_gauche, self.test_type_var, *options_test_type, command=lambda _: self.write_parameters(".default_set_parameters.toml"))
+        lbl_menu2 = tk.OptionMenu(self.frame_gauche, self.test_type_var, *options_test_type, command=lambda _: self.write_parameters(hidden_folder / "default_set_parameters.toml"))
         lbl_menu2.grid(pady=(2,10), column=0, row=7)
 
         # Save folder
@@ -208,186 +273,255 @@ class TensileTestP1(tk.Tk):
 
         self.entry_folder = tk.Entry(self.frame_g_bas, width=25, textvariable=self.folder_var)
         self.entry_folder.grid(pady=(2,10), column=0, row=1)
+        self.entry_folder.xview("end")
 
-        # ToDo: use functools.partial()
-        self.entry_folder.bind("<FocusOut>", lambda event: self.write_parameters(".default_set_parameters.toml"))
-        self.entry_folder.bind("<Return>", lambda event: self.write_parameters(".default_set_parameters.toml"))
+        self.entry_folder.bind("<FocusOut>", partial(self.write_parameters, hidden_folder / "default_set_parameters.toml"))
+        self.entry_folder.bind("<Return>", partial(self.write_parameters, hidden_folder / "default_set_parameters.toml"))
 
-        btn_save = tk.Button(self.frame_g_bas, text="...",
+        self.btn_save = tk.Button(self.frame_g_bas, text="📂",
                             font=("Helvetica",13), command=self.save_data)
-        btn_save.grid(pady=(2,10), column=1, row=1)
+        self.btn_save.grid(pady=(2,10), column=1, row=1)
+        self.liste_buttons.append(self.btn_save)
         self.frame_g_bas.grid(column=0, row=8)
 
     #crée la partie droite de la page, avec les boutons qui permettent de choisir quoi faire
     def create_action_widgets(self):
-        """Crée les widgets pour les actions"""
+
         # Frame haute (calibration)
         self.frame_d_haut = tk.Frame(self.frame_droite)
-        btn_protec_epr = tk.Button(self.frame_d_haut, text="Move the jaw manually",
+        self.btn_protec_epr = tk.Button(self.frame_d_haut, text="Move the jaw manually",
                                  font=("Helvetica",13), command=self.protection_eprouvette)
-        btn_protec_epr.grid(pady=10, column=0, row=0)
-        btn_calibrate = tk.Button(self.frame_d_haut, text="Calibrate the position",
+        self.btn_protec_epr.grid(pady=10, column=0, row=0)
+        self.liste_buttons.append(self.btn_protec_epr)
+        self.btn_calibrate = tk.Button(self.frame_d_haut, text="Calibrate the position",
                                  font=("Helvetica",13), command=self.calibrate)
-        btn_calibrate.grid(pady=10, column=0, row=1)
+        self.btn_calibrate.grid(pady=10, column=0, row=1)
+        self.liste_buttons.append(self.btn_calibrate)
+        self.btn_go = tk.Button(self.frame_droite.winfo_children()[0],  # frame_d_haut
+                                text="Go to desired \nInitial distance",
+                                font=("Helvetica",13),
+                                command=self.go_to_position, 
+                                state="disabled")
+        self.btn_go.grid(pady=10, column=0, row=2)
+        self.liste_buttons.append(self.btn_go)
         self.frame_d_haut.grid(column=0, row=0, pady=(0,25))
         
         # Frame milieu (sauvegarde/chargement)
         self.frame_d_milieu = tk.Frame(self.frame_droite)
-        btn_save_params = tk.Button(self.frame_d_milieu, text="Save parameters",
+        self.btn_save_params = tk.Button(self.frame_d_milieu, text="Save parameters",
                                   font=("Helvetica",13), command=self.file_save)
-        btn_save_params.grid(pady=10, column=0, row=0)
-        btn_load_params = tk.Button(self.frame_d_milieu, text="Load parameters",
+        self.btn_save_params.grid(pady=10, column=0, row=0)
+        self.liste_buttons.append(self.btn_save_params)
+        self.btn_load_params = tk.Button(self.frame_d_milieu, text="Load parameters",
                                   font=("Helvetica",13), command=self.file_load)
-        btn_load_params.grid(pady=10, column=0, row=1)
+        self.btn_load_params.grid(pady=10, column=0, row=1)
+        self.liste_buttons.append(self.btn_load_params)
         self.frame_d_milieu.grid(column=0, row=1, pady=(25,25))
 
-
+        
 
     # choix du dossier de sauvegarde des résultats (volontaire)
     def save_data(self):
 
-        self.path_save_data = tkFileDialog.askdirectory(initialdir="./results")
-        # Todo: gérer cas où ça cancel, vérifier si 1 seul argument ou plusieurs
+        selected_dir = tkFileDialog.askdirectory(initialdir= BASE_DIR / "results/")
+
+        if not selected_dir:  # "Cancel" renvoie une chaine vide, donc on ne fait rien de cette chaîne
+            return
+
+        self.path_save_data = Path(selected_dir)
+
         if not os.path.exists(self.path_save_data):
             try:
                 os.makedirs(self.path_save_data)
             except:
-                self.path_save_data = BASE_DIR + "/results/"
+                self.path_save_data = BASE_DIR / "results/"
 
-        # ToDo: utiliser une StringVar non ?
+
         self.entry_folder.delete(0, tk.END)
         self.entry_folder.insert(tk.END, self.path_save_data)
         self.entry_folder.grid(column=0, row=1)
-        self.write_parameters(".default_set_parameters.toml")
-
-
+        self.write_parameters(hidden_folder / "default_set_parameters.toml")
+        self.entry_folder.xview("end")
 
 
     #permet de gérer la valeur de entry_speed, pour s'assurer qu'elle soit bien float et entre les valeurs limites
     def validate_speed(self, *args):
-
         try:
-            value = float(self.speed_var.get())
-            # ToDo: bouger except ici
-
-            # Si valeur dans les limites
-            if 0 <= value <= 2.5:
-                self.last_valid_speed = value
-                self.write_parameters(".default_set_parameters.toml")
-                return
-
-            # Si valeur hors limites
-            response = tk.messagebox.askokcancel(
-                "Valeur hors limites",
-                f"La vitesse {value} mm/s est hors limites (0-2.5 mm/s).\n"
-                "La vitesse qui va être utilisée est la valeur par défaut : 1mm/s",
+            value = self.speed_var.get()
+            
+        except:  # Si ce n'est pas un nombre
+            self.speed_var.set(self.last_valid_speed)
+            tk.messagebox.showerror(
+                "Incorrect value",
+                "Please enter a valid number",
                 parent=self
-            )
-
-            if response:  # Si l'utilisateur confirme
-                value = 1
-                self.speed = value
-                self.last_valid_speed = value
-                self.speed_var.set("1.0")
-            else:  # Si l'utilisateur annule
-                self.speed_var.set(str(self.last_valid_speed))
-                self.speed = self.last_valid_speed
-
-        except ValueError:  # Si ce n'est pas un nombre
-            if self.speed_var.get() != "":  # Permet de vider le champ
-                self.speed_var.set(str(self.last_valid_speed))
-                tk.messagebox.showerror(
-                    "Erreur de saisie",
-                    "Veuillez entrer un nombre valide",
-                    parent=self
                 )
+            self.speed = self.last_valid_speed
+            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Incorrect speed value (not a valid number)")
+            return 
+        
+        # Si valeur dans les limites
+        if 0 < value <= 2.5:
+            self.last_valid_speed = value
+            self.write_parameters(hidden_folder / "default_set_parameters.toml")
+            return
+
+        # Si valeur hors limites
+        response = tk.messagebox.askokcancel(
+            "Value out of bounds",
+            f"The speed {value} mm/s is out of bounds (0-2.5 mm/s). \n"
+            f"The speed will be set on its default value : {DICT_DEFAULT_VALUES.get("speed")} mm/s", 
+            parent=self
+        )
+        print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Incorrect speed value (out of bounds)")
+        
+
+        if response:  # Si l'utilisateur confirme
+            value = 1
+            self.speed = value
+            self.last_valid_speed = value
+            self.speed_var.set(DICT_DEFAULT_VALUES.get("speed"))
+        else:  # Si l'utilisateur annule
+            self.speed_var.set(str(self.last_valid_speed))
             self.speed = self.last_valid_speed
 
 
-    #permet de gérer la valeur de entry_l0, pour s'assurer qu'elle soit bien float
+
+
+    #permet de gérer la valeur de entry_l0, pour s'assurer qu'elle soit bien float et entre les limites
     def validate_l0(self, *args):
-        current_value = self.l0_var.get()
-
+    
         try:
-            value = float(current_value)
+            current_value = self.l0_var.get()
+            value = round(current_value,1)
 
-            # Si valeur dans les limites
-            if 0 <= value :
-                self.l0 = value
-                self.last_valid_l0= value
-                self.write_parameters(".default_set_parameters.toml")
-                return
-
-            # Si valeur hors limites
-            response = tk.messagebox.askokcancel(
-                "Valeur hors limites",
-                f"L'écart {value} mm est incorrect, il ne peut être inférieur à 0.\n"
-                "L'écart qui va être réglé est la valeur par défaut : 10mm",
+        except:  # Si ce n'est pas un nombre
+            self.l0_var.set(self.last_valid_l0)
+            tk.messagebox.showerror(
+                "Incorrect value",
+                "Please enter a valid number",
                 parent=self
             )
-
-            if response:  # Si l'utilisateur confirme
-                value = 10
-                self.l0 = value
-                self.last_valid_l0 = value
-                self.l0_var.set("10.0")
-            else:  # Si l'utilisateur annule
-                self.l0_var.set(str(self.last_valid_l0))
-                self.l0 = self.last_valid_l0
-
-        except ValueError:  # Si ce n'est pas un nombre
-            if current_value != "":  # Permet de vider le champ
-                self.l0_var.set(str(self.last_valid_speed))
-                tk.messagebox.showerror(
-                    "Erreur de saisie",
-                    "Veuillez entrer un nombre valide\nLes nombres négatifs ne sont pas autorisés",
-                    parent=self
-                )
             self.l0 = self.last_valid_l0
+            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Incorrect initial distance value (not a valid number)")
+            return
+
+        # Si valeur dans les limites
+        if 0 < value < 300: 
+            self.l0 = value
+            self.last_valid_l0= value
+            self.write_parameters(hidden_folder / "default_set_parameters.toml")
+            return
+
+        # Si valeur hors limites
+        response = tk.messagebox.askokcancel(
+            "Value out of bounds",
+            f"The initial distance {value} mm is out of bounds (1-300 mm). \n"
+            f"The inital distance will be set on its default value : {DICT_DEFAULT_VALUES.get("l0")} mm", 
+            parent=self
+        )
+        print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Incorrect initial distance value (out of bounds)")
+
+        if response:  # Si l'utilisateur confirme
+            value = 20
+            self.l0 = value
+            self.last_valid_l0 = value
+            self.l0_var.set(DICT_DEFAULT_VALUES.get("l0"))
+        else:  # Si l'utilisateur annule
+            self.l0_var.set(str(self.last_valid_l0))
+            self.l0 = self.last_valid_l0
+        return("value_changed")
+        
 
     #à la moindre variation d'une valeur dans les paramèters renseignés, on écrit les valeur dans le fichier de transfert pour le 2e programme
     def write_parameters(self, saving_path, *args):
 
+        test_type = str(self.test_type_var.get())
         path_results = self.folder_var.get()
         if path_results is None or path_results.strip() =="" :
-            if self.test_type_var == "Monotone Uniaxial Tensile Test":
-                path_results = self.nommer(BASE_DIR + "/results/",
-                                                debut="Tensile", extension="/")
+            if test_type in DICT_TEST_TYPES:
+                 prefixe = DICT_TEST_TYPES[test_type]
+                 path_results, prefix = self.nommer(BASE_DIR / "results/",
+                                                debut=prefixe, extension="/")
             else:
-                path_results = self.nommer(BASE_DIR + "/results/",
+                path_results, prefix = self.nommer(BASE_DIR / "results/",
                                                 debut="", extension="/")
-
-        # ToDo: utiliser un dict CONST en début de fichier
-        if self.load_cell_var.get() == "50N":
-            gain = 3.26496001e+05 
         else:
-            gain = 1
+            if test_type in DICT_TEST_TYPES:
+                 prefixe = DICT_TEST_TYPES[test_type]
+                 path_results, prefix = self.nommer(path_results,
+                                                debut=prefixe, extension="/")
+            else:
+                path_results, prefix = self.nommer(path_results,
+                                                debut="", extension="/")
+    
+        gain = DICT_LOAD_CELLS.get(self.load_cell_var.get())
 
 
-        # ToDo: probablement des méthodes dispos dans tomllib
-        text1 = "[data]\n"
-        text2save = (text1 +
-                    f'speed = {self.speed_var.get()}\n' +
-                    f'l0 = {self.l0_var.get()}\n' +
-                    f'path_save_data = "{path_results}"\n' +
-                    f'load_cell = "{self.load_cell_var.get()}"\n' +
-                    f'test_type = "{self.test_type_var.get()}"\n' +
-                    f'gain = "{gain}"\n')
-
+        settings = {
+            "data": {
+                "speed": float(self.speed_var.get()),
+                "l0": float(self.l0_var.get()), 
+                "path_save_data": f'"{str(path_results)}"',
+                "load_cell": f'"{str(self.load_cell_var.get())}"',
+                "test_type":f'"{str(self.test_type_var.get())}"',
+                "gain": float(gain),
+                "prefix":f'"{str(prefix)}"',
+                "ports": f'"{str(ports_movement)}"',
+                "ports_state" : f'"{str(switch_states_movement)}"',
+                "nb_steps": int(nb_steps_mm)
+            }
+        }
+        
         try:
-            filename = os.path.join(BASE_DIR, saving_path)
-            with open(filename, 'w') as f:
-                f.write(text2save)
-
+            with open(BASE_DIR / saving_path, "w") as f:
+                for section, values in settings.items():
+                    f.write(f"[{section}]\n")
+                    for key, value in values.items():
+                        f.write(f"{key} = {value}\n")
+            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Changes in the parameters set were saved successfully")
         except Exception as e:
-            tk.messagebox.showerror("Erreur", f"Échec de sauvegarde:\n{str(e)}", parent=self)
+            tk.messagebox.showerror("Error", f"Saving of teh parameters set failed", f"Error: {str(e)}", parent=self)
+            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Saving of the new parameters failed:\n{str(e)}")
 
 
-    # ToDo: utiliser pathlib.Path pour tout ce qui concerne les fichiers
+    #création du fichier .toml si il n'est pas existant là où il devrait
+    def create_default_parameters(self):
+
+        first_load_cell, first_gain = next(iter(DICT_LOAD_CELLS.items()))
+        first_test_type, _ = next(iter(DICT_TEST_TYPES.items()))
+        _, prefix = self.nommer(BASE_DIR / "results/", debut="", extension="/")
+
+        settings = {
+            "data": {
+                "speed": DICT_DEFAULT_VALUES.get("speed"),
+                "l0": DICT_DEFAULT_VALUES.get("l0"), 
+                "path_save_data": f'"{DICT_DEFAULT_VALUES.get("saving_folder")}"',
+                "load_cell": f'"{first_load_cell}"',
+                "test_type":f'"{first_test_type}"',
+                "gain": first_gain,
+                "prefix":f'"{str(prefix)}"',
+                "ports": f'"{str(ports_movement)}"',
+                "ports_state" : f'"{str(switch_states_movement)}"',
+                "nb_steps": int(nb_steps_mm)
+            }
+        }
+        
+        try:
+            with open(hidden_folder / "default_set_parameters.toml", "w") as f:
+                for section, values in settings.items():
+                    f.write(f"[{section}]\n")
+                    for key, value in values.items():
+                        f.write(f"{key} = {value}\n")
+        except Exception as e:
+            tk.messagebox.showerror("Error", f"The creation of the default parameters file did not work", f"Error: {str(e)}", parent=self)
+            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),f"The creation of the default parameters file did not work:\n{str(e)}")
+
+
     #permet de nommer automatiquement un fichier/ dossier en cas de sauvegarde forcée
     def nommer(self, parent_path, debut="", extension=""):
-        """Génère un nom unique pour les fichiers/dossiers"""
-        date_str = datetime.now().strftime("%Y.%m.%d")
+
+        date_str = datetime.now().strftime("%Y_%m_%d")
 
         if debut.strip() != "":
             deb = True
@@ -397,244 +531,581 @@ class TensileTestP1(tk.Tk):
             base_name = f"{date_str}{extension}"
 
         counter = 1
-        filename = os.path.join(parent_path, base_name)
+        parent_path = Path(parent_path)
+        filename = Path(parent_path / base_name)
         os.makedirs(parent_path, exist_ok=True)
 
-        while os.path.exists(filename):
-            if deb:
-                filename = os.path.join(parent_path, f"{debut}_{date_str}_{counter}{extension}")
-            else:
-                filename = os.path.join(parent_path, f"{date_str}_{counter}{extension}")
-            counter += 1
+        counter += 1
+        if debut=="":
+            prefix=f"{date_str}_"
+        else:
+            prefix=f"{debut}_{date_str}_"
 
-        return filename
+        return (parent_path,prefix)
 
     # sauvegarde volontaire du set de paramètres
     def file_save(self):
+        self.validate_speed()
+        self.validate_l0()
         initial_dir = "./parameters_sets"
         os.makedirs(initial_dir, exist_ok=True)
         f = tkFileDialog.asksaveasfilename(defaultextension=".toml",
                                       initialdir=initial_dir)
-        if f :
-            self.write_parameters(f)
+        try:
 
+            if f :
+                self.write_parameters(f)
+                print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"The parameters set was saved succesfully")
+        
+        except Exception as e:
+            tk.messagebox.showerror("Error", f"The parameters set save failed", f"Error: {str(e)}",parent=self)
+            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"The parameters set save failed")
 
 
     #choix du set de paramètres à ouvrir
     def open_file(self):
-        """Ouvre un fichier de paramètres"""
         filename = tkFileDialog.askopenfilename(defaultextension=".toml", 
                                               initialdir="./parameters_sets")
+        if not filename:
+            return("no_change")
         with open(filename, "rb") as f:
             data = tomllib.load(f)
         return data
 
-    #enregistrement des données du set ouvert
+
+    #ouverture d'un set de paramètres, pour récupérer ses valeurs
     def file_load(self):
-        """Charge les paramètres depuis un fichier"""
         doc = self.open_file()
 
-        speed = doc['data']['speed']
-        l0 = doc['data']['l0']
-        path_save_data = doc['data']['path_save_data']
-        load_cell = doc['data']['load_cell']
-        test_type = doc['data']['test_type']
+        if doc == "no_change":
+            return        
 
-        try:
-            self.destroy()
-        except:
-            pass
+        # Met à jour les variables avec les nouvelles valeurs
+        self.speed_var.set(float(doc['data']['speed']))
+        self.l0_var.set(float(doc['data']['l0']))
+        self.folder_var.set(doc['data']['path_save_data'])
+        self.load_cell_var.set(doc['data']['load_cell'])
+        self.test_type_var.set(doc['data']['test_type'])
 
-        # ToDo: Juste update les champs (StringVar + var.trace_add('write', func))
-        # ToDo: aussi update valeurs par défaut
-        # Recrée une nouvelle instance avec les paramètres chargés
-        app = TensileTestP1(False, speed, l0, path_save_data, load_cell, test_type)
-        app.mainloop()
+        # Met à jour les dernières valeurs valides
+        self.last_valid_speed = float(doc['data']['speed'])
+        self.last_valid_l0 = float(doc['data']['l0'])
+        self.path_save_data = Path(doc['data']['path_save_data'])
 
-    #ouverture du programme Portection_eprouvette, pour pouvoir écarter les mors manuellempent (s'ils sont trop serrés pour mettre la cale)
+        # Sauvegarde les nouveaux paramètres dans le fichier par défaut
+        self.write_parameters(hidden_folder / "default_set_parameters.toml")
+
+        self.entry_folder.xview("end")
+        
+        self.update_idletasks()
+
+        print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"The parameters set was loaded succesfully")
+
+
+        
+    #ouverture du programme Protection_eprouvette, pour pouvoir écarter les mors manuellempent (s'ils sont trop serrés pour mettre la cale)
     def protection_eprouvette(self):
-        tk.messagebox.showinfo(
+        response = tk.messagebox.askokcancel(
             title="Manual movement",
-            message="Be careful, the limit switches are deactivated during this phase",
+            message="Have you selected the correct load cell ? \nBe careful, the limit switches are deactivated during this phase ",
             parent=self
         )
-        print("protection_eprouvette")  # ToDo: Ecrire dans un fichier à la place a=$(cat fichier.txt)
-        sys.stdout.flush()
-        self.destroy()
-        sys.exit(0)  # ToDo: self.destroy()
+        
+        if response:
+            self.error_end_run()
+            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"The .npy file has been reinitialized")
+            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Launching protection_eprouvette.py")
+            self.ecriture_commande("protection_eprouvette") 
+            try:
+                self.destroy()
+            except Exception as e:
+                print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),f"The window could not close :\n{str(e)}")
+                tk.messagebox.showerror("Error", f"The window could not close", f"Error: {str(e)}", parent=self)
+                
 
 
     # 1e étape de la calibration de position, en plaçant la cale
     def calibrate(self):
-        response = tk.messagebox.askokcancel(
-            title="Confirmation",
-            message="Have you set up the block?",
-            detail="Be careful, the limit switches are deactivated during this phase \nClick OK to start calibration or Cancel to abort",
-            parent=self
-        )
-        if response :
-            self.calibrate_2()
+        calibration_needed, ref_pos = self.read_calib_n_pos()
+
+        if calibration_needed :
+            response = tk.messagebox.askokcancel(
+                title="Confirmation",
+                message="Have you set up the wedge and selected the correct load cell?",
+                detail="Be careful, the limit switches are deactivated during this phase \nClick OK to start calibration or Cancel to abort",
+                parent=self
+            )
+            if response :
+                self.calibrate_2()
+
+        else:
+            tk.messagebox.showinfo(
+                title="Calibration unnecessary",
+                message="The last calibration is still correct, you don't have to do it again."
+            )
+
+            response = tk.messagebox.askokcancel(
+                title="Calibration unnecessary",
+                message="The last calibration is still correct. Do you still want to redo the calibration?",
+                parent=self
+            )
+            if response :
+                self.calibrate_2()
+            else:
+                try:
+                    self.activation_buttons()
+                    self.update_idletasks()
+                except Exception as e:
+                    print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),f"The buttons could not be activated as planned:\n{str(e)}") 
+                    tk.messagebox.showerror("Error", f"The buttons could not be activated as planned", f"Error: {str(e)}", parent=self)
+
 
 
     #2e étape de la calibration, en déplaçant le moteur jusqu'à la cale (ou la limite, mais ne devrait pas arriver)
     def calibrate_2(self):
-        """Effectue la calibration du moteur"""
-
+        
+        print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Starting calibration")
         motor = None
         load_cell = None
-
+        error_occurred = False
+        contactor_hit = False
+        
         try:
-            motor = ph_stp.Phidget4AStepper(steps_per_mm=2500, current_limit=3, 
-                                           remote=True, absolute_mode=True, 
-                                           reference_pos=0, switch_ports=())
-            # ToDo: prendre gain selon chix utilisateur
-            load_cell = ph_whe.PhidgetWheatstoneBridge(channel=1, gain=3.26496001e+05, 
-                                                     remote=True)
+
+            self.deactivation_buttons()
+            self.update_idletasks()
+
+            motor = ph_stp.Phidget4AStepper(steps_per_mm= nb_steps_mm,
+                                           current_limit=3, 
+                                           remote=True, 
+                                           absolute_mode=True, 
+                                           reference_pos=0,
+                                           switch_ports=ports_calibration, 
+                                           save_last_pos=True,
+                                           save_pos_folder=hidden_folder,
+                                           switch_states=switch_states_calibration) 
+            load_cell = ph_whe.PhidgetWheatstoneBridge(channel=1, 
+                                                       gain = DICT_LOAD_CELLS.get(self.load_cell_var.get()), 
+                                                       remote=True)
             motor.open()
             load_cell.open()
-            
+        
+
             time.sleep(1)
+
             data = load_cell.get_data()
-            initial_force = data[1]
+            if data is None:
+                error_occurred = True
+                print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Error: no data received from the load cell")
+                tk.messagebox.showerror(
+                    "Captor error", 
+                    "The load cell didn't send any value\n"
+                    "Calibration failed \nPlease check the connection and try again",
+                parent=self
+            )
+            else:
+                initial_force = data[1]
 
-            target_position = -300  # On va au max vers la cellule d'effort (-300mm)
-            taille_cale = 58 + 10  # on rajoute 10 pour combler l'erreur (probablement due au fait que la cale est flexible)
             hit_obstacle = False 
-            force_max_calib = 10 # On s'arrête si force>10N
 
-            motor.set_position(target_position, 1)
+        
 
-            while True:
-                time.sleep(0.05)  
-                data = load_cell.get_data()  # ToDo: choper direct _, force = load_cell.get_data()
+            if not error_occurred:
+                
+                try:
 
-                # ToDo: cas où data is None
-                if data is not None and not hit_obstacle :
-                    current_force = data[1]
+                    motor.set_speed(-1)
 
-                    if abs(current_force - initial_force) > force_max_calib:  
-                        current_pos = motor.get_position()
+                    while True:
 
-                        # ToDo: if pas nécessaire
-                        if current_pos is not None:
-                            hit_obstacle = True
-                            new_target = current_pos + 5  # Recule de 5 mm
-                            motor.set_position(new_target, 1)
-                            target_position = new_target
-                            
-                            
-                current_pos = motor.get_position()
-                if current_pos is not None and abs(current_pos - target_position) < 0.05:
-                    self.calibrated_pos = taille_cale
-                    break
-
-            # ToDo: mettre le bouton dès le début mais désactivé
-            try:
-                self.btn_go.grid_info()
-
-            except :
-                 #Ajoute le bouton pour aller à la position désirée, uniquement s'il n'existe pas encore
-                self.btn_go = tk.Button(self.frame_droite.winfo_children()[0],  # frame_d_haut
-                                text="Go to desired position",
-                                font=("Helvetica",13),
-                                command=self.go_to_position)
-                self.btn_go.grid(pady=10, column=0, row=2)
+                        if motor._switch_hit:  # Vérification explicite
+                             raise ValueError("Switch hit during calibration!")
 
 
-        # ToDo: finally inutile ici
+                        if load_cell.get_data() is None: 
+                            error_occurred = True
+                            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Error: no more data coming from the load cell")
+                            tk.messagebox.showerror(
+                                "Signal lost", 
+                                "The load cell unexpectedly stopped sending data\n"
+                                "Calibration could not succeed",
+                                parent=self
+                                )
+                            break
+
+                        else:
+                            _, current_force = load_cell.get_data()
+
+                            if not hit_obstacle :
+
+                                if abs(current_force - initial_force) > FORCE_MAX_CALIB:  
+                                    current_pos = motor.get_position()
+                                    hit_obstacle = True
+                                    new_target = current_pos + DECALAGE_POST_CALIBRATION  # Recule de 5 mm
+                                    motor.set_position(new_target, 1)
+                                    target_position = new_target
+                                    print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"The motor encountered an obstacle, and shifts a bit from it")
+
+                            else:            
+                                current_pos = motor.get_position()
+                                if current_pos is not None and abs(current_pos - target_position) < 0.05:
+                                    self.calibrated_pos = TAILLE_CALE + DECALAGE_POST_CALIBRATION
+                                    print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"The motor reached the desired position")
+                                    break
+               
+                except ValueError:
+                    # Interception spécifique de l'erreur de fin de course
+                    print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),f"The contactor / limit switch was hit")
+                    contactor_hit = True
+                    try:
+                        motor.set_speed(0) #sans cette ligne, les boutons ne se réactivent pas
+                    except Exception as e:
+                        print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),f"After having hit the contactor, the motor could not restart: \n{str(e)}")
+
+
+        except Exception as e:
+            error_occurred = True
+            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),f"An error occured during the calibration:\n{str(e)}")
+            tk.messagebox.showerror("Error", f"An error occured during the calibration", f"Error: {str(e)}", parent=self) 
+
         finally:
-            motor.close()
-            load_cell.close()
-            self.is_calibrated = True
+            try:
+                motor.close()
+                load_cell.close()
+                print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Closing the motor and the load cell") 
+            except Exception as e:
+                print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),f"The motor and the load cell could not be closed as planned:\n{str(e)}") 
+            try:
+                if contactor_hit:
+                    np.save(hidden_folder / 'last_pos.npy', np.array(0))
+                else:
+                    np.save(hidden_folder / 'last_pos.npy', np.array(DECALAGE_POST_CALIBRATION))
+            except:
+                print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),f"The .npy file could not be overwritten, so the point of the calibration failed:\n{str(e)}") 
+                self.error_end_run()
+                error_occurred = True
+            
+            if not error_occurred:
+                try:
+                    self.activation_buttons()
+                except Exception as e:
+                    print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),f"The buttons could not be activated as planned:\n{str(e)}") 
+                    tk.messagebox.showerror("Error", f"The buttons could not be activated as planned", f"Error: {str(e)}",parent=self)
+                print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Calibration succeeded")
 
+            else:
+                try:
+                    self.activation_buttons()
+                    self.btn_go.config(state="disabled")
+                except Exception as e:
+                    print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),f"The buttons could not be activated as planned:\n{str(e)}") 
+                    tk.messagebox.showerror("Error", f"The buttons could not be activated as planned:", f"Error: {str(e)}", parent=self)
+                print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Calibration failed")
+                self.error_end_run()
+
+        
 
 
     #déplacement à la position souhaitée par l'utilisateur
     def go_to_position(self):
-        """Déplace le moteur à la position désirée"""
         
+        calibration_needed, ref_pos = self.read_calib_n_pos()
+    
+        if calibration_needed : #si la calibation est nécessaire
+            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Launching the setting in position should not be posible, as the motor is not calibrated. Stopping it now")
+            tk.messagebox.showerror(
+                "Error", 
+                "You should not be able to launch the positionning, as the motor is not calibrated",
+            parent=self
+            )
 
-        self.validate_l0()
+            self.btn_go.config(state="disabled")
+            return
+
+        print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Starting to set in position")
+
+        motor = None
+        load_cell = None
+        
+        changed_value = self.validate_l0()
+        if changed_value == "value_changed":
+            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Setting in position stopped because the initial distance value was changed")
+            return
+
         self.l0 = float(self.l0_var.get())
-
-        target_position = self.l0 - self.calibrated_pos
-        self.calibrated_pos = self.l0
+        target_position = self.l0 
+        error_occurred = False
         
         try:
-            motor = ph_stp.Phidget4AStepper(steps_per_mm=2500, current_limit=3, 
-                                           remote=True, absolute_mode=True, 
-                                           reference_pos=0, switch_ports=(2,3))
-            load_cell = ph_whe.PhidgetWheatstoneBridge(channel=1, gain=3.26496001e+05, 
-                                                     remote=True)
+
+            self.deactivation_buttons()
+            self.update_idletasks()
+
+            motor = ph_stp.Phidget4AStepper(steps_per_mm=nb_steps_mm, 
+                                           current_limit=3, 
+                                           remote=True, 
+                                           absolute_mode=True, 
+                                           reference_pos=ref_pos, 
+                                           save_last_pos=True,
+                                           save_pos_folder=hidden_folder,
+                                           switch_ports=ports_movement, 
+                                           switch_states=switch_states_movement)
+            load_cell = ph_whe.PhidgetWheatstoneBridge(channel=1, 
+                                                       gain = DICT_LOAD_CELLS.get(self.load_cell_var.get()),
+                                                       remote=True)
             motor.open()
             load_cell.open()
-
-            motor.set_position(target_position, 1.5)
-
-            while True:
-                data = load_cell.get_data()
-                if data is not None:
-                    current_force = data[1]
-
-                    if abs(current_force) > 30:  # On s'arrête si force>30N
-                        motor.stop()
-                        break
-
-                current_pos = motor.get_position()
-                if current_pos is not None and abs(current_pos - target_position) < 0.05:
-                    break
-
-        # ToDo: finally inutile ici
-        finally:
-            motor.close()
-            load_cell.close()
             
-            self.in_position = self.l0
+            time.sleep(1)
+
+            data = load_cell.get_data()
+            if data is None:
+                error_occurred = True 
+                print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Error: no data received from the load cell")
+                tk.messagebox.showerror(
+                    "Captor error", 
+                    "The load cell didn't send any value\n"
+                    "Positionning stopped \nPlease check the connection",
+                parent=self
+                )
+            else:
+                initial_force = data[1]
+
+            if not error_occurred:
+                
+
+                try :
+
+                    motor.set_position(target_position, 1)
+
+                    while True:
+
+                        if load_cell.get_data() is None: 
+                            tk.messagebox.showerror(
+                                "Signal lost", 
+                                "The load cell unexpectedly stopped sending data\n"
+                                "Positionning could not succeed\n"
+                                "You must redo the calibration",
+                                parent=self
+                                )
+                            error_occurred = True
+                            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Error: no more data coming from the load cell")
+                            self.error_end_run()
+                            break
+
+                        else:
+                            _, current_force = load_cell.get_data()
+
+                            if abs(current_force-initial_force) > FORCE_MAX_CALIB:  # On s'arrête si force>10N
+                                motor.stop()
+                                tk.messagebox.showerror(
+                                    "Obstacle encountered", 
+                                    "The load cell measured a force that was not supposed to be so high\n"
+                                    "Positionning stopped\n"
+                                    "You must redo the calibration",
+                                    parent=self
+                                    )
+                                error_occurred = True
+                                self.error_end_run()
+                                print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"An obstacle was hit unexpectedly, the motor stopped. Calibration needs to be done again")
+                                break
+                                
+
+                        current_pos = motor.get_position()
+                        if current_pos is not None and abs(current_pos - target_position) < 0.05:
+                            break
+
+                    
+
+                except ValueError as e:
+                    # Interception spécifique de l'erreur de fin de course
+                    error_occurred = True
+                    tk.messagebox.showerror("Error", f"A switch was hit, you need to calibrate again", f"Error: {str(e)}", parent=self)
+                    print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),f"A switch was hit:\n{str(e)}")
+                    try:
+                        motor.set_speed(0)  #sans cette ligne, les boutons ne se réactivent pas
+                    except Exception as e:
+                        print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),f"After having hit the contactor, the motor could not restart: \n{str(e)}")
+                    
+
+
+
+        except Exception as e:
+            error_occurred = True
+            tk.messagebox.showerror("Error", f"An error occured during the setting in position", f"Error: {str(e)}", parent=self)
+            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),f"An error occured during the setting in position:\n{str(e)}")
+
+        finally:
+            try:
+                motor.close()
+                load_cell.close()
+                print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Closing the motor and the load cell")
+            except Exception as e:
+                print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),f"The motor and the load cell could not be closed as planned:\n{str(e)}")
+            if  not error_occurred :
+                try:
+                    self.in_position = self.l0
+                    self.activation_buttons()
+                except Exception as e:
+                    tk.messagebox.showerror("Error", f"The buttons could not be activated as planned", f"Error: {str(e)}", parent=self)
+                    print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),f"The buttons could not be activated as planned:\n{str(e)}")
+                print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Setting in position succeeded")
+
+            else:
+                try:
+                    self.activation_buttons()
+                    self.btn_go.config(state="disabled")
+                except Exception as e:
+                    tk.messagebox.showerror("Error", f"The buttons could not be activated as planned", f"Error: {str(e)}", parent=self)                     
+                    print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),f"The buttons could not be activated as planned:\n{str(e)}")
+                print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Setting in position failed")
+                self.error_end_run()
+
+
+    #permet de lire le document last_pos.npy, et de dire qu'il faut recalibrer s'il est manquant / s'il contient None (ce qui signifie que le dernier essai a atteint un interrupteur de fin de course)
+    def read_calib_n_pos(self):
+
+        last_pos_path = hidden_folder / 'last_pos.npy'
+        calibration_needed = True  # Par défaut, calibration nécessaire
+        last_pos = None
+
+        try: #regarder si fichier lisible
+            data = np.load(last_pos_path)
+            if data.ndim == 0:  # Si c'est un scalaire (0D)
+                last_pos = data.item()  # Convertit en float natif
+            elif data.ndim == 1:  # Si c'est un tableau 1D
+                last_pos = data[0]
+            else:
+                calibration_needed = True
+                last_pos = None
+                print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),f"The array format is not supported")
+
+                
+            if np.isscalar(last_pos) and not np.isnan(last_pos): #vérifier qu'il y a bien eu une calibration le jour de l'exécution
+
+                timestamp_modif = os.path.getmtime(last_pos_path)
+                date_modif = datetime.fromtimestamp(timestamp_modif) #dernière modif du fichier
+
+                aujourdhui = datetime.now()
+                minuit_aujourdhui = datetime.combine(aujourdhui.date(), dt_time.min) 
+
+                if date_modif < minuit_aujourdhui:
+                    print(f"No calibration has been done today")
+                    np.save(last_pos_path, np.nan)
+
+                    calibration_needed = True
+
+                else: #tout est ok
+                    calibration_needed = False
+            
+            else :
+                calibration_needed = True
+                print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Either the last test ended with a limit switch being hit, or the jaws were moved manually")
+            
+        except Exception as e:
+            calibration_needed = True
+            last_pos = None
+            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),f"The .npy file could not be loaded: {str(e)}")
+            np.save(last_pos_path, np.array([np.nan], dtype=float))
+
+        if calibration_needed :
+            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"The system isn't calibrated, so a calibration is needed")
+            self.btn_go.config(state="disabled")
+            last_pos = None  
+        else:
+            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Loaded the last position from the .npy file")
+
+        return([calibration_needed, last_pos])
+    
+
+    #fonction à appeler si on atteint un bouton de fin de course durant un test ou si on le bouge manuellement
+    def error_end_run(self):
+        file_path = hidden_folder / "last_pos.npy"
+        np.save(file_path, np.nan)
+        try:
+            self.btn_go.config(state="disabled")
+            self.update_idletasks()
+        except Exception as e:
+            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),f"The buttons could not be activated as planned:\n{str(e)}") 
+            tk.messagebox.showerror("Error", f"The buttons could not be deactivated as planned", f"Error: {str(e)}", parent=self)
+
+
+
+    #permet de désactiver tous les boutons durant la calibration et la mise en position
+    def deactivation_buttons(self):
+        for btn in self.liste_buttons :
+            btn.config(state="disabled")
+        self.update_idletasks()
+        print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Deactivating buttons during this phase")
+    
+
+    #permet de réactiver tous les boutons à la fin des opérations précédentes
+    def activation_buttons(self):
+        for btn in self.liste_buttons :
+            btn.config(state="normal")
+        self.update_idletasks()
+        print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Activating buttons again")
+    
+    #permet d'écrire dans le fichier commande la commande permetatnt de choisir le fichier à ouvrir
+    def ecriture_commande(self, commande):
+        command_file = hidden_folder / "commande.txt"
+        command_file.write_text(commande)
+        print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Closing the graphical interface now")
 
 
     # si on ferme la fenetre par la croix, on arrete tout
     def close_cross(self):
-        self.write_parameters(".default_set_parameters.toml")
-        print("exit")
-        sys.exit(1)  # ToDo: self.destroy()
+        self.write_parameters(hidden_folder / "default_set_parameters.toml")
+        
+        self.ecriture_commande("exit")
+        try:
+            self.destroy()
+        except Exception as e:
+            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),f"The window could not close:\n{str(e)}")
+            tk.messagebox.showerror("Error", f"The window could not close", f"Error: {str(e)}", parent=self)
+
 
     #lancement de l'essai à proprement parler,en emêchant l'utilisateur de commencer s'il n'y a pas eu de calibration
     def demarrage(self):
 
-        if not self.is_calibrated:
+        calibration_needed, ref_pos = self.read_calib_n_pos()
 
-            response = tk.messagebox.showerror(
+        if calibration_needed:
+
+            tk.messagebox.showerror(
             title="Missing calibration",
             message="You did not calibrate the machine",
             parent=self
-        )
-
-
-        elif self.entry_l0.get().strip() is None or self.entry_l0.get().strip() == "" or float(self.entry_l0.get().strip()) != float(self.in_position) :
-            response = tk.messagebox.showerror(
+            )
+            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Can't launch the test if the position is not calibrated")
+        
+        elif self.l0 != self.in_position or self.l0_var.get() != self.l0 :
+            tk.messagebox.showerror(
             title="Missing positioning",
-            message="You did not set the machine to the right position",
+            message="You did not set the machine to the right initial distance",
             parent=self
-        )
+            )
+            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Can't launch the test if the motor is not is the desired position")
 
         else:
             self.validate_speed()
             self.validate_l0()
-            self.write_parameters(".default_set_parameters.toml")
-
+            self.write_parameters(hidden_folder / "default_set_parameters.toml")
+            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),"Saving once more the parameters")
+            self.ecriture_commande("demarrer_essai")
             try:
                 self.destroy()
-            # ToDo: retire ça
-            except:
-                pass
+            except Exception as e:
+                print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())),f"The window could not close:\n{str(e)}")
+                tk.messagebox.showerror("Error", f"The window could not close ", f"Error: {str(e)}", parent=self)
 
 
     #crée une couleur aléatoire pour le titre
     def create_couleur_titre(self):
         # Base claire (entre 200 et 255 pour garder des tons pastel)
-        r = random.randint(150, 220)
-        g = random.randint(150, 220)
-        b = random.randint(150, 220)
+        r = random.randint(0, 220)
+        g = random.randint(0, 220)
+        b = random.randint(0, 220)
 
         # Renforcer légèrement une composante aléatoire
         composante = random.choice([0, 1, 2])
@@ -648,5 +1119,5 @@ class TensileTestP1(tk.Tk):
         return f"#{r:02x}{g:02x}{b:02x}"
 
 if __name__ == '__main__':
-    app = TensileTestP1(True)
+    app = TensileTestP1()
     app.mainloop()
