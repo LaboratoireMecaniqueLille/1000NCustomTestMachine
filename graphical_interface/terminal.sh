@@ -1,31 +1,31 @@
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-export BASE_DIR  # ToDo: Pourquoi l'exporter ? Utilisé ailleurs ?
+export BASE_DIR 
 
 while true; do
-
-    # Exécution de interface_graphique.py et récupération du choix
+    
+    # Executing interface_graphique.py
     if ! python3 interface_graphique.py; then
         echo "Critical error is the interface, stopping now"
-        exit 1  # Quitte le script Bash avec un code d'erreur
+        exit 1  # Stops the bash script with an error code
     fi
 
     commande=$(cat .parameters/commande.txt)
-    echo "$path"  # ToDo: Elle sort d'où cette variable path ?
 
-    # Gestion des cas de sortie
+    # Managing the different exit options
     if [[ "$commande" == *protection_eprouvette ]]; then
-        # Lance protection_eprouvette.py et recommence le cycle après
+        # Starts protection_eprouvette.py and start the cycle again after
         python3 protection_eprouvette.py
 
     elif [[ "$commande" == *exit ]]; then
-        # Lance P2 et continue le cycle après
+        # Stops everything because interface_graphique.py was stoppped 
+        #through the cross
         echo "Program closed, ending everything"
         break
 
     elif [[ "$commande" == *demarrer_essai ]]; then
-        # Mode normal avec lancement_essai + SORTIE
+        # Starts protection_eprouvette.py and stops the cycle
         python3 lancement_essai.py
-        break  # Sortie de la boucle et arrêt après l'essai
+        break  
         
     fi
 done
