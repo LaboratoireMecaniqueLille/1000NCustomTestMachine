@@ -6,7 +6,7 @@ import tkinter as tk
 import tkinter.filedialog as tkFileDialog
 import os
 from datetime import datetime, time as dt_time
-import time
+import time 
 from pathlib import Path
 from functools import partial
 import tomllib
@@ -15,6 +15,13 @@ import crappy.inout.phidgets_wheatstone_bridge as ph_whe
 import sys
 
 
+
+"""When you change your equipment, if you want to avoid any problem, you 
+have to check that you change/ select the right values for these parameters:
+- the gain for the load cell
+- the number of steps per mm of the motor
+- the ports used during the calibration and the setting in position
+"""
 
 """BASE_DIR is a constant obtained by the bash file, giving the path where
 the bash and the 3 python files are located """
@@ -41,7 +48,7 @@ HIDDEN_FOLDER.mkdir(parents=True, exist_ok=True)
 
 """Default parameters, in case the .toml file was deleted and the program 
 has to create it to keep working"""
-DICT_DEFAULT_VALUES = {"speed": 1,  # float
+DICT_DEFAULT_VALUES = {"speed": 0.5,  # float
                        "l0": 20,  # float
                        "saving_folder": SAVING_FOLDER #path
                        }
@@ -65,23 +72,26 @@ shift after the calibration, the force necessary for the load cell to
 detect there was an obstacle / the motor reached its end of course, 
 and the maximum length the motor can go by on this machine (it does not need
 to be precise, just don't put a value below the real distance)"""
-TAILLE_CALE = 14  # in mm
+TAILLE_CALE = 14  # in mm    #value for the final machine, 0 because included 
 DECALAGE_POST_CALIBRATION = 5  # in mm
 FORCE_MAX_CALIB = 10  # in N
 MAX_STROKE = 300 # in mm
 
 """Motor speed: common values are 100 and 2500"""
-NB_STEPS_MM = 2500
+NB_STEPS_MM = 100
 
+"""Setting for the speed for automated movements during the calibration
+and the setting in position"""
+SPEED_DEFAULT=0.2
 
 """List of ports and their default state following their use
 True means open by default, False means close by default"""
 ports_movement = tuple([2,3])  # for the final machine tuple([2,3])
-switch_states_movement = tuple([True,True])  # for the final machine
+switch_states_movement = tuple([True,False])  # for the final machine
                                                 # tuple([True, False])
-ports_calibration = tuple([2, 3])  # for the final machine tuple([5])
-switch_states_calibration = tuple([True])  # for the final machine
-                                            # tuple([ ... ])
+ports_calibration = tuple([5,2,3])  # for the final machine tuple([5])
+switch_states_calibration = tuple([True,True,False])  # for the final machine
+                                            # tuple([True])
 
 
 class TensileTestP1(tk.Tk):
@@ -882,9 +892,9 @@ class TensileTestP1(tk.Tk):
                 if not error_occurred :
                     
                     if calib:
-                        motor.set_speed(-1)
+                        motor.set_speed(-SPEED_DEFAULT)
                     else:
-                        motor.set_position(target_position,1)
+                        motor.set_position(target_position,SPEED_DEFAULT)
 
 
                     while True:
@@ -924,7 +934,7 @@ class TensileTestP1(tk.Tk):
                                         new_target = (current_pos +
                                                         DECALAGE_POST_CALIBRATION)
                                         """Small shift from the obstacle"""
-                                        motor.set_position(new_target, 1)
+                                        motor.set_position(new_target, SPEED_DEFAULT)
                                         target_position = new_target
                                         self.afficher_message("The motor encountered an"
                                             " obstacle, and shifts a bit from it")
@@ -977,11 +987,13 @@ class TensileTestP1(tk.Tk):
             if calib: 
                 """Catching the specific error due to a hit with the end course
                 button"""
-                motor.set_speed(0)
-                self.afficher_message(f"The contactor / limit switch was hit")
+                
+                self.afficher_message(f"A contactor or a  limit switch was hit")
                 contactor_hit = True
                 
+                motor.set_speed(0)
                 """Without this line, the function stops working"""
+                
                 
             
             else:
@@ -1010,6 +1022,7 @@ class TensileTestP1(tk.Tk):
             if calib:
                 if contactor_hit:
                     np.save(HIDDEN_FOLDER / 'last_pos.npy', np.array(0))
+
                 else:
                     np.save(HIDDEN_FOLDER / 'last_pos.npy',
                             np.array(DECALAGE_POST_CALIBRATION))
