@@ -86,12 +86,10 @@ SPEED_DEFAULT=0.2
 
 """List of ports and their default state following their use
 True means open by default, False means close by default"""
-ports_movement = tuple([2,3])  # for the final machine tuple([2,3])
-switch_states_movement = tuple([True,False])  # for the final machine
-                                                # tuple([True, False])
-ports_calibration = tuple([5,2,3])  # for the final machine tuple([5])
-switch_states_calibration = tuple([True,True,False])  # for the final machine
-                                            # tuple([True])
+ports_movement = tuple([2,3])  
+switch_states_movement = tuple([True,False])  
+ports_calibration = tuple([5,2,3])  
+switch_states_calibration = tuple([True,True,False])  
 
 
 class TensileTestP1(tk.Tk):
@@ -1013,8 +1011,10 @@ class TensileTestP1(tk.Tk):
         finally:
 
             if not setting_already_ok:
-                motor.close()
-                load_cell.close()
+                if motor is not None:
+                    motor.close()
+                if load_cell is not None:
+                    load_cell.close()
                 self.afficher_message("Closing the motor and the load cell")
                 """Saving the ending position into a special file as 0, so that it 
                 can be used as the new reference position"""
