@@ -1,3 +1,9 @@
+#!/bin/bash
+
+. /home/tensiletest/venv/bin/activate 
+#This path has to be adapted to the path of your venv, but in any case it must 
+#start by ". " and end by "venv/bin/activate"
+
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export BASE_DIR 
 

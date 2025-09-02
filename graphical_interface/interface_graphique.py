@@ -21,6 +21,7 @@ have to check that you change/ select the right values for these parameters:
 - the gain for the load cell
 - the number of steps per mm of the motor
 - the ports used during the calibration and the setting in position
+- the path to the venv (not in this file but in the terminal.sh file) 
 """
 
 """BASE_DIR is a constant obtained by the bash file, giving the path where
